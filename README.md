@@ -1,2 +1,2 @@
 # Ezsign datemark
-電子簽名APP
+Ezsign no Logo

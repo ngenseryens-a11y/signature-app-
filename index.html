@@ -75,22 +75,6 @@ main{width:100%;max-width:480px;padding:16px 16px 40px;display:flex;flex-directi
 .btn-primary{flex:2;padding:11px;background:var(--accent);border:none;color:white;font-size:12px;letter-spacing:2px;cursor:pointer;font-family:'Noto Sans TC',sans-serif;font-weight:500;}
 .btn-primary:disabled{background:var(--line);color:#aaa;cursor:not-allowed;}
 
-/* 日期戳記選項 */
-.date-stamp-section{background:white;border:1px solid var(--line);border-radius:2px;padding:12px 14px;display:flex;flex-direction:column;gap:8px;}
-.date-stamp-section .ds-title{font-size:12px;color:var(--ink);font-weight:500;letter-spacing:1px;}
-.ds-toggle-row{display:flex;align-items:center;gap:10px;}
-.toggle-switch{position:relative;width:44px;height:24px;flex-shrink:0;}
-.toggle-switch input{opacity:0;width:0;height:0;}
-.toggle-slider{position:absolute;inset:0;background:var(--line);border-radius:24px;cursor:pointer;transition:.3s;}
-.toggle-slider:before{content:'';position:absolute;width:18px;height:18px;left:3px;bottom:3px;background:white;border-radius:50%;transition:.3s;}
-input:checked+.toggle-slider{background:var(--accent);}
-input:checked+.toggle-slider:before{transform:translateX(20px);}
-.ds-label{font-size:12px;color:var(--muted);}
-.ds-preview{font-size:13px;color:var(--ink);font-weight:500;letter-spacing:1px;}
-.ds-format-row{display:flex;gap:6px;flex-wrap:wrap;}
-.ds-fmt-btn{background:none;border:1px solid var(--line);padding:5px 10px;font-size:11px;cursor:pointer;color:var(--muted);border-radius:2px;font-family:'Noto Sans TC',sans-serif;}
-.ds-fmt-btn.active{background:var(--ink);color:var(--gold);border-color:var(--ink);}
-
 #sig-saved-row{display:none;margin:0 16px 16px;align-items:center;gap:12px;background:white;padding:10px 12px;border:1px solid var(--line);border-radius:2px;}
 #sig-thumb{height:48px;max-width:120px;object-fit:contain;}
 #sig-saved-row .sinfo{flex:1;}
@@ -169,7 +153,7 @@ input:checked+.toggle-slider:before{transform:translateX(20px);}
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
     步驟一｜選擇要簽名的文件
   </div>
-  <div class="upload-zone">
+  <div class="upload-zone" id="upload-zone">
     <input type="file" id="file-input" accept="image/jpeg,image/png,image/gif,image/webp,.pdf,application/pdf">
     <div class="upload-icon">📄</div>
     <div class="upload-text">支援 JPG、PNG 圖片 及 PDF 文件<br>點此選擇文件</div>
@@ -185,7 +169,7 @@ input:checked+.toggle-slider:before{transform:translateX(20px);}
   </div>
   <div id="doc-preview-box">
     <div class="preview-label">▸ 文件預覽（確認無誤後，點下方按鈕簽名）</div>
-    <img id="doc-preview-img" src="" alt="文件預覽">
+    <img id="doc-preview-img" src="" alt="">
     <div id="loading-bar"><span class="spinner"></span>PDF 載入中，請稍候…</div>
     <div id="pdf-pages-wrap"></div>
     <button id="go-sign-btn" style="display:none;width:100%;padding:12px;margin-top:8px;background:var(--accent);border:none;color:white;font-size:13px;letter-spacing:2px;cursor:pointer;font-family:'Noto Sans TC',sans-serif;font-weight:500;"
@@ -222,28 +206,6 @@ input:checked+.toggle-slider:before{transform:translateX(20px);}
     </div>
   </div>
 
-  <!-- 日期戳記選項 -->
-  <div style="padding:0 16px 16px;">
-    <div class="date-stamp-section">
-      <div class="ds-title">📅 日期戳記</div>
-      <div class="ds-toggle-row">
-        <label class="toggle-switch">
-          <input type="checkbox" id="date-toggle" onchange="toggleDateStamp()" checked>
-          <span class="toggle-slider"></span>
-        </label>
-        <span class="ds-label">自動附上簽名日期</span>
-      </div>
-      <div id="date-stamp-options">
-        <div class="ds-preview" id="date-preview"></div>
-        <div class="ds-format-row">
-          <button class="ds-fmt-btn active" data-fmt="zh" onclick="setDateFmt(this)">民國年</button>
-          <button class="ds-fmt-btn" data-fmt="ad" onclick="setDateFmt(this)">西元年</button>
-          <button class="ds-fmt-btn" data-fmt="slash" onclick="setDateFmt(this)">2025/05/23</button>
-        </div>
-      </div>
-    </div>
-  </div>
-
   <div id="sig-saved-row">
     <img id="sig-thumb" src="" alt="簽名">
     <div class="sinfo">
@@ -270,7 +232,7 @@ input:checked+.toggle-slider:before{transform:translateX(20px);}
   </div>
 
   <div id="doc-place-wrap">
-    <img id="doc-place-img" src="" alt="文件">
+    <img id="doc-place-img" src="" alt="">
     <canvas id="doc-place-pdfcanvas"></canvas>
   </div>
   <div class="place-btn-row">
@@ -298,9 +260,37 @@ input:checked+.toggle-slider:before{transform:translateX(20px);}
 <div id="toast"></div>
 
 <script>
-/* ══ PDF.js ══ */
-pdfjsLib.GlobalWorkerOptions.workerSrc =
-  'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+/* ══ 徹底隱藏 PDF.js 在受限瀏覽器產生的所有警告與訊息 ══ */
+(function(){
+  const origWarn = console.warn;
+  const origLog  = console.log;
+  const origInfo = console.info;
+  const filterPatterns = [
+    'fake worker', 'Setting up fake', 'Worker', 'pdf.worker',
+    'fetchStandardFontData', 'getDocument', 'pdfjs'
+  ];
+  function shouldHide(args){
+    try {
+      const msg = args.map(a => typeof a==='string'?a:(a&&a.message)||'').join(' ');
+      return filterPatterns.some(p => msg.indexOf(p) !== -1);
+    } catch(e){ return false; }
+  }
+  console.warn = function(...args){ if(!shouldHide(args)) origWarn.apply(console, args); };
+  console.log  = function(...args){ if(!shouldHide(args)) origLog.apply(console, args); };
+  console.info = function(...args){ if(!shouldHide(args)) origInfo.apply(console, args); };
+})();
+
+/* ══ PDF.js 設定 ══ */
+let pdfjsReady = false;
+try {
+  if (typeof pdfjsLib !== 'undefined') {
+    pdfjsLib.GlobalWorkerOptions.workerSrc =
+      'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    // 關閉 PDF.js 內部的 verbosity（額外保險）
+    if (pdfjsLib.verbosity !== undefined) pdfjsLib.verbosity = 0;
+    pdfjsReady = true;
+  }
+} catch(e) {}
 
 /* ══ 狀態 ══ */
 let penColor='#1a1a2e', penSize=4;
@@ -313,35 +303,6 @@ let currentPageIdx=0;     // 目前放置簽名的頁碼（0-based）
 let pageStickers={};      // { pageIdx: [ sticker資訊... ] } 各頁貼圖
 let strokeSnapshots=[];
 let points=[], canvasW=0, canvasH=0;
-
-/* ══ 日期戳記 ══ */
-let dateEnabled=true;
-let dateFmt='zh';
-
-function getTodayStr(fmt) {
-  const now = new Date();
-  const y = now.getFullYear(), m = now.getMonth()+1, d = now.getDate();
-  const ym = y - 1911;
-  if (fmt==='zh')    return `民國${ym}年${m}月${d}日`;
-  if (fmt==='ad')    return `${y}年${m}月${d}日`;
-  if (fmt==='slash') return `${y}/${String(m).padStart(2,'0')}/${String(d).padStart(2,'0')}`;
-  return '';
-}
-
-function updateDatePreview() {
-  document.getElementById('date-preview').textContent = dateEnabled ? getTodayStr(dateFmt) : '（不附加日期）';
-}
-function toggleDateStamp() {
-  dateEnabled = document.getElementById('date-toggle').checked;
-  document.getElementById('date-stamp-options').style.opacity = dateEnabled ? '1' : '0.4';
-  updateDatePreview();
-}
-function setDateFmt(el) {
-  document.querySelectorAll('.ds-fmt-btn').forEach(b=>b.classList.remove('active'));
-  el.classList.add('active'); dateFmt = el.dataset.fmt;
-  updateDatePreview();
-}
-window.addEventListener('load', updateDatePreview);
 
 /* ══ 簽名 Canvas ══ */
 const canvas = document.getElementById('sig-canvas');
@@ -363,50 +324,126 @@ window.addEventListener('resize',()=>setTimeout(initCanvas,200));
 
 function getXY(e,el){
   const r=el.getBoundingClientRect(), s=e.touches?e.touches[0]:e;
-  return {x:s.clientX-r.left, y:s.clientY-r.top};
+  return {x:s.clientX-r.left, y:s.clientY-r.top, t:Date.now()};
 }
+
+/* ════════════════════════════════════
+   高品質書寫演算法
+   - Quadratic Bezier 中點平滑（每兩個點之間用控制點做平滑曲線）
+   - 速度感應筆寬（寫慢→粗、寫快→細，模擬真實筆觸）
+   - 端點圓潤化
+════════════════════════════════════ */
+let lastWidth = 0;
+const VELOCITY_FILTER = 0.7;   // 速度平滑係數
+const MIN_WIDTH_RATIO = 0.5;   // 最細寬度比例（相對於設定粗細）
+const MAX_WIDTH_RATIO = 1.6;   // 最粗寬度比例
+
 function startDraw(e){
   e.preventDefault(); isDrawing=true;
-  const p=getXY(e,canvas); lastX=p.x; lastY=p.y;
-  points=[{x:p.x,y:p.y}];
+  const p=getXY(e,canvas);
+  points=[p];
+  lastX=p.x; lastY=p.y;
+  lastWidth = penSize * MIN_WIDTH_RATIO;
+  // 起筆畫一個小圓點，讓起筆有自然圓頭
+  ctx.fillStyle=penColor;
+  ctx.beginPath();
+  ctx.arc(p.x, p.y, penSize*0.4, 0, Math.PI*2);
+  ctx.fill();
 }
+
+function calcVelocity(p1, p2){
+  const dx = p2.x - p1.x, dy = p2.y - p1.y;
+  const dt = Math.max(1, p2.t - p1.t);
+  return Math.sqrt(dx*dx + dy*dy) / dt;
+}
+
+function calcDynamicWidth(velocity){
+  // 速度越快寬度越細，使用平滑曲線轉換
+  // 速度範圍：0~5 px/ms
+  const normalized = Math.min(velocity / 2.5, 1);
+  const ratio = MAX_WIDTH_RATIO - (MAX_WIDTH_RATIO - MIN_WIDTH_RATIO) * normalized;
+  let newWidth = penSize * ratio;
+  // 與上一次寬度平滑過渡，避免突變
+  newWidth = lastWidth * VELOCITY_FILTER + newWidth * (1 - VELOCITY_FILTER);
+  lastWidth = newWidth;
+  return newWidth;
+}
+
+function midPoint(p1, p2){
+  return { x: (p1.x + p2.x) / 2, y: (p1.y + p2.y) / 2 };
+}
+
 function doDraw(e){
   if(!isDrawing)return; e.preventDefault();
   const p=getXY(e,canvas);
-  points.push({x:p.x,y:p.y});
-  if(points.length>=4){
-    const l=points.length;
-    smoothCurve(points[l-4],points[l-3],points[l-2],points[l-1]);
-  } else {
-    ctx.strokeStyle=penColor; ctx.lineWidth=penSize;
-    ctx.beginPath(); ctx.moveTo(lastX,lastY); ctx.lineTo(p.x,p.y); ctx.stroke();
-  }
-  lastX=p.x; lastY=p.y;
-  document.getElementById('apply-btn').disabled=false;
-}
-function smoothCurve(p0,p1,p2,p3){
-  const cp1x=p1.x+(p2.x-p0.x)/6, cp1y=p1.y+(p2.y-p0.y)/6;
-  const cp2x=p2.x-(p3.x-p1.x)/6, cp2y=p2.y-(p3.y-p1.y)/6;
-  ctx.strokeStyle=penColor; ctx.lineWidth=penSize;
-  ctx.beginPath(); ctx.moveTo(p1.x,p1.y);
-  ctx.bezierCurveTo(cp1x,cp1y,cp2x,cp2y,p2.x,p2.y);
+  // 距離太近的點過濾掉（避免抖動）
+  const last = points[points.length-1];
+  const dist = Math.hypot(p.x - last.x, p.y - last.y);
+  if (dist < 1) return;
+
+  points.push(p);
+
+  // 至少要有 3 個點才能繪製曲線
+  if (points.length < 3) return;
+
+  const len = points.length;
+  const p0 = points[len-3], p1 = points[len-2], p2 = points[len-1];
+
+  // 計算這段筆畫的速度與寬度
+  const velocity = calcVelocity(p1, p2);
+  const width = calcDynamicWidth(velocity);
+
+  // 用 quadratic bezier：從前一段中點，經過 p1（控制點），到這段中點
+  const startMid = midPoint(p0, p1);
+  const endMid   = midPoint(p1, p2);
+
+  ctx.strokeStyle = penColor;
+  ctx.lineWidth   = width;
+  ctx.lineCap     = 'round';
+  ctx.lineJoin    = 'round';
+  ctx.beginPath();
+  ctx.moveTo(startMid.x, startMid.y);
+  ctx.quadraticCurveTo(p1.x, p1.y, endMid.x, endMid.y);
   ctx.stroke();
+
+  document.getElementById('apply-btn').disabled = false;
 }
+
 function endDraw(){
   if(!isDrawing)return; isDrawing=false;
-  if(points.length>=2&&points.length<4){
-    ctx.strokeStyle=penColor; ctx.lineWidth=penSize;
-    ctx.beginPath(); ctx.moveTo(points[0].x,points[0].y);
-    for(let i=1;i<points.length;i++) ctx.lineTo(points[i].x,points[i].y);
+
+  // 收筆：補繪最後一小段，從最後中點接到實際終點
+  if(points.length >= 2){
+    const last = points[points.length-1];
+    const prev = points[points.length-2];
+    const startMid = midPoint(prev, last);
+    ctx.strokeStyle = penColor;
+    ctx.lineWidth = lastWidth || penSize;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(startMid.x, startMid.y);
+    ctx.lineTo(last.x, last.y);
     ctx.stroke();
+
+    // 收筆圓點
+    ctx.fillStyle = penColor;
+    ctx.beginPath();
+    ctx.arc(last.x, last.y, (lastWidth || penSize)*0.45, 0, Math.PI*2);
+    ctx.fill();
+  } else if (points.length === 1){
+    // 單點輕觸
+    const p = points[0];
+    ctx.fillStyle = penColor;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, penSize*0.5, 0, Math.PI*2);
+    ctx.fill();
   }
-  if(points.length===1){
-    ctx.fillStyle=penColor;
-    ctx.beginPath(); ctx.arc(points[0].x,points[0].y,penSize/2,0,Math.PI*2); ctx.fill();
-  }
+
   points=[];
+  lastWidth = 0;
   strokeSnapshots.push(ctx.getImageData(0,0,canvasW,canvasH));
   updateUndoBtn();
+  document.getElementById('apply-btn').disabled = false;
 }
 canvas.addEventListener('mousedown',startDraw);
 canvas.addEventListener('mousemove',doDraw);
@@ -427,23 +464,6 @@ function updateUndoBtn(){document.getElementById('undo-btn').disabled=!strokeSna
 function clearSig(){ctx.clearRect(0,0,canvasW,canvasH);strokeSnapshots=[];document.getElementById('apply-btn').disabled=true;updateUndoBtn();}
 function setColor(el){document.querySelectorAll('.color-dot').forEach(d=>d.classList.remove('active'));el.classList.add('active');penColor=el.dataset.color;}
 function setSize(el){document.querySelectorAll('.size-btn').forEach(b=>b.classList.remove('active'));el.classList.add('active');penSize=parseInt(el.dataset.size);}
-
-/* ══ 產生日期戳記圖片 ══ */
-function makeDateCanvas(text) {
-  const dc = document.createElement('canvas');
-  const fontSize = 28;
-  dc.height = fontSize + 16;
-  const dtx = dc.getContext('2d');
-  dtx.font = `${fontSize}px 'Noto Serif TC',serif`;
-  const tw = dtx.measureText(text).width;
-  dc.width = tw + 24;
-  dtx.font = `${fontSize}px 'Noto Serif TC',serif`;
-  dtx.fillStyle = 'rgba(0,0,0,0)';
-  dtx.fillRect(0,0,dc.width,dc.height);
-  dtx.fillStyle = '#8b1a1a';
-  dtx.fillText(text, 12, fontSize + 4);
-  return dc.toDataURL('image/png');
-}
 
 /* ══ 上傳文件 ══ */
 document.getElementById('file-input').addEventListener('change',function(e){
@@ -477,6 +497,14 @@ function loadFile(file){
     };
     reader.readAsDataURL(file);
   } else {
+    // 檢查 PDF.js 是否可用
+    if (!pdfjsReady) {
+      document.getElementById('loading-bar').style.display='block';
+      document.getElementById('loading-bar').innerHTML=
+        '⚠ PDF 處理元件未載入<br>'+
+        '<small style="color:var(--muted)">請確認網路連線後重新整理頁面，或改用圖片格式</small>';
+      return;
+    }
     document.getElementById('loading-bar').style.display='block';
     reader.onload=ev=>renderPDF(new Uint8Array(ev.target.result));
     reader.readAsArrayBuffer(file);
@@ -674,42 +702,110 @@ function switchToPage(idx){
 function loadPlacePage(idx){
   try {
     const pc=document.getElementById('doc-place-pdfcanvas');
+    const placeImg=document.getElementById('doc-place-img');
     const src=pdfPages[idx];
-    if(!src || !src.canvas){
+    if(!src || !src.dataURL){
       console.warn('PDF頁面資料不存在', idx);
+      showToast('⚠ 找不到頁面資料');
       return;
     }
-    pc.width=src.canvas.width; pc.height=src.canvas.height;
-    pc.getContext('2d').drawImage(src.canvas,0,0);
+
+    // 確保顯示狀態正確
+    placeImg.style.display='none';
+    placeImg.src='';
     pc.style.display='block';
-    document.getElementById('doc-place-img').style.display='none';
-    // 清除貼圖
-    const wrap=document.getElementById('doc-place-wrap');
-    wrap.querySelectorAll('.sig-sticker').forEach(el=>el.remove());
-    // 等下一個畫面循環，確保 canvas 已完成顯示尺寸計算
-    setTimeout(()=>{
-      if(pageStickers[idx] && pageStickers[idx].length>0){
-        pageStickers[idx].forEach(info=>restoreSticker(info,wrap));
-      } else {
-        initStickersForPage(idx);
-      }
-    },100);
+
+    // 用 Image 載入 dataURL 後繪製，最穩定的方式
+    const img=new Image();
+    img.onload=function(){
+      pc.width=img.width;
+      pc.height=img.height;
+      const cx=pc.getContext('2d');
+      cx.clearRect(0,0,pc.width,pc.height);
+      cx.drawImage(img,0,0);
+
+      // 清除舊貼圖
+      const wrap=document.getElementById('doc-place-wrap');
+      wrap.querySelectorAll('.sig-sticker').forEach(el=>el.remove());
+
+      // 等 DOM 更新完畢再放貼圖
+      setTimeout(()=>{
+        if(pageStickers[idx] && pageStickers[idx].length>0){
+          pageStickers[idx].forEach(info=>restoreSticker(info,wrap));
+        } else {
+          initStickersForPage(idx);
+        }
+      },150);
+    };
+    img.onerror=function(){
+      console.error('PDF頁面圖片載入失敗');
+      showToast('⚠ 頁面圖片載入失敗');
+    };
+    img.src=src.dataURL;
   } catch(err){
     console.error('載入頁面失敗', err);
-    showToast('⚠ 頁面載入失敗，請重新整理');
+    showToast('⚠ 頁面載入失敗');
   }
+}
+
+/* ══ 合成「簽名 + 底層浮水印」貼圖 ══ */
+function makeSignatureWithWatermark(sigURL, callback){
+  const img = new Image();
+  img.onload = function(){
+    // 建立合成 canvas：原簽名上方留空、下方加浮水印
+    const sigW = img.width;
+    const sigH = img.height;
+
+    // 浮水印區域：在簽名下方加一塊
+    const wmHeight = Math.max(40, sigH * 0.35); // 浮水印區高度
+    const totalH = sigH + wmHeight;
+
+    const c = document.createElement('canvas');
+    c.width  = sigW;
+    c.height = totalH;
+    const cx = c.getContext('2d');
+
+    // 取得今天日期
+    const now = new Date();
+    const y = now.getFullYear();
+    const m = String(now.getMonth()+1).padStart(2,'0');
+    const d = String(now.getDate()).padStart(2,'0');
+    const dateStr = `${y}/${m}/${d}`;
+
+    // 先畫底層浮水印
+    const dateSize  = Math.max(14, sigW * 0.10);
+
+    cx.save();
+    cx.textAlign = 'right';
+    cx.textBaseline = 'bottom';
+    // 半透明背景
+    cx.globalAlpha = 0.55;
+    cx.fillStyle = 'rgba(255,255,255,0.6)';
+    cx.fillRect(0, sigH, sigW, wmHeight);
+    // 只顯示日期
+    cx.globalAlpha = 0.85;
+    cx.fillStyle = '#333333';
+    cx.font = `${dateSize}px sans-serif`;
+    cx.fillText(dateStr, sigW - 8, sigH + wmHeight - 4);
+    cx.restore();
+
+    // 再畫簽名在上方
+    cx.drawImage(img, 0, 0, sigW, sigH);
+
+    callback(c.toDataURL('image/png'));
+  };
+  img.onerror = () => callback(sigURL);  // 失敗就回傳原始簽名
+  img.src = sigURL;
 }
 
 function initStickersForPage(pageKey){
   const wrap=document.getElementById('doc-place-wrap');
   wrap.querySelectorAll('.sig-sticker').forEach(el=>el.remove());
-  // 簽名貼圖
-  addSticker(sigDataURL, 20, 20, 130, 65, false, wrap);
-  // 日期戳記
-  if(dateEnabled){
-    const dateImg=makeDateCanvas(getTodayStr(dateFmt));
-    addSticker(dateImg, 20, 95, 160, 36, true, wrap);
-  }
+  // 合成「簽名 + 浮水印」後再加入
+  makeSignatureWithWatermark(sigDataURL, function(combinedURL){
+    // 預設尺寸稍微加高（因為下方多了浮水印區）
+    addSticker(combinedURL, 20, 20, 140, 95, false, wrap);
+  });
 }
 
 /* ══ 儲存/還原貼圖位置 ══ */
@@ -811,14 +907,22 @@ async function mergeAll(){
   resultWrap.innerHTML='';
 
   const wrap=document.getElementById('doc-place-wrap');
-  const W=wrap.offsetWidth, H=wrap.offsetHeight||400;
+  const displayW = wrap.offsetWidth;
+  const displayH = wrap.offsetHeight || 400;
 
   if(!isPDF){
-    // 單圖模式
-    const dataURL=await mergePage(docImgDataURL,pageStickers['img']||[],W,H);
+    // 單圖模式：取得原始圖片尺寸
+    const realSize = await getImageRealSize(docImgDataURL);
+    // 用原始尺寸合併（保持高解析度）
+    const dataURL=await mergePage(
+      docImgDataURL,
+      pageStickers['img']||[],
+      realSize.w, realSize.h,
+      displayW, displayH
+    );
     appendResultPage(resultWrap,dataURL,null);
   } else {
-    // PDF 多頁模式：只輸出有貼圖的頁面
+    // PDF 多頁模式
     const signedPages=Object.keys(pageStickers).filter(k=>pageStickers[k]&&pageStickers[k].length>0);
     if(signedPages.length===0){
       document.getElementById('export-info-text').textContent='⚠ 尚未在任何頁面放置簽名';
@@ -826,8 +930,12 @@ async function mergeAll(){
     }
     for(const k of signedPages){
       const pageIdx=parseInt(k);
-      const bgURL=pdfPages[pageIdx].dataURL;
-      const dataURL=await mergePage(bgURL,pageStickers[k],W,H);
+      const pageData = pdfPages[pageIdx];
+      const bgURL = pageData.dataURL;
+      // PDF 頁面的原始解析度
+      const realW = pageData.canvas.width;
+      const realH = pageData.canvas.height;
+      const dataURL=await mergePage(bgURL,pageStickers[k],realW,realH,displayW,displayH);
       appendResultPage(resultWrap,dataURL,`第 ${pageIdx+1} 頁`);
     }
   }
@@ -836,28 +944,50 @@ async function mergeAll(){
   resultWrap.style.display='flex';
 }
 
-function mergePage(bgURL, stickers, W, H){
+/* 取得圖片真實尺寸 */
+function getImageRealSize(url){
+  return new Promise(resolve=>{
+    const i=new Image();
+    i.onload=()=>resolve({w:i.naturalWidth, h:i.naturalHeight});
+    i.onerror=()=>resolve({w:800, h:1000});
+    i.src=url;
+  });
+}
+
+function mergePage(bgURL, stickers, W, H, displayW, displayH){
   return new Promise(resolve=>{
     const mc=document.getElementById('merge-canvas');
     mc.width=W; mc.height=H;
     const mctx=mc.getContext('2d');
 
+    // 計算位置縮放比例：把畫面座標轉為實際輸出座標
+    const scaleX = W / displayW;
+    const scaleY = H / displayH;
+
+    /* 流程：文件背景（原解析度）→ 簽名（含內建浮水印，按比例放大） */
     function drawStickers(){
       let done=0;
-      if(!stickers.length){finalize();return;}
+      if(!stickers.length){ finalize(); return; }
       stickers.forEach(st=>{
         const si=new Image();
         si.onload=()=>{
-          mctx.drawImage(si,st.left,st.top,st.w,st.h);
-          if(++done===stickers.length)finalize();
+          // 把畫面尺寸的位置轉換到實際輸出尺寸
+          mctx.drawImage(si,
+            st.left * scaleX,
+            st.top  * scaleY,
+            st.w    * scaleX,
+            st.h    * scaleY
+          );
+          if(++done===stickers.length) finalize();
         };
-        si.onerror=()=>{if(++done===stickers.length)finalize();};
+        si.onerror=()=>{ if(++done===stickers.length) finalize(); };
         si.src=st.src;
       });
     }
+
     function finalize(){
       let dataURL='';
-      try{dataURL=mc.toDataURL('image/jpeg',0.92);}catch(e){}
+      try{dataURL=mc.toDataURL('image/jpeg',0.95);}catch(e){}
       if(!dataURL||dataURL==='data:,'){try{dataURL=mc.toDataURL('image/png');}catch(e){}}
       resolve(dataURL||'');
     }

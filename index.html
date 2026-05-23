@@ -3,233 +3,292 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<title>電子簽名 Demo｜元家企業</title>
+<title>EZSign｜電子簽名</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@400;600;900&family=Noto+Sans+TC:wght@300;400;500&display=swap');
-  :root{
-    --ink:#1a1a2e; --paper:#f5f0e8; --accent:#8b1a1a;
-    --gold:#c9a84c; --muted:#7a7265; --line:#d4cfc6;
-    --shadow:rgba(26,26,46,0.15);
-  }
-  *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
-  body{font-family:'Noto Sans TC',sans-serif;background:var(--ink);min-height:100vh;display:flex;flex-direction:column;align-items:center;overflow-x:hidden;}
+@import url('https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@400;600;900&family=Noto+Sans+TC:wght@300;400;500&display=swap');
+:root{
+  --ink:#1a1a2e;--paper:#f5f0e8;--accent:#8b1a1a;
+  --gold:#c9a84c;--muted:#7a7265;--line:#d4cfc6;
+  --shadow:rgba(26,26,46,0.15);
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+body{font-family:'Noto Sans TC',sans-serif;background:var(--ink);min-height:100vh;display:flex;flex-direction:column;align-items:center;overflow-x:hidden;}
 
-  header{width:100%;background:var(--ink);padding:18px 24px 14px;display:flex;align-items:center;gap:12px;border-bottom:1px solid rgba(201,168,76,0.3);}
-  .logo-mark{width:36px;height:36px;border:2px solid var(--gold);display:flex;align-items:center;justify-content:center;font-family:'Noto Serif TC',serif;font-size:14px;color:var(--gold);font-weight:900;}
-  header h1{font-family:'Noto Serif TC',serif;color:var(--paper);font-size:17px;font-weight:600;letter-spacing:2px;}
-  header span{margin-left:auto;font-size:11px;color:var(--muted);letter-spacing:1px;}
+/* 頂部 */
+header{width:100%;background:var(--ink);padding:18px 24px 14px;display:flex;align-items:center;gap:12px;border-bottom:1px solid rgba(201,168,76,0.3);}
+.logo-mark{width:40px;height:36px;border:2px solid var(--gold);display:flex;align-items:center;justify-content:center;font-family:'Noto Serif TC',serif;font-size:13px;color:var(--gold);font-weight:900;letter-spacing:1px;}
+header h1{font-family:'Noto Serif TC',serif;color:var(--paper);font-size:17px;font-weight:600;letter-spacing:2px;}
+header span{margin-left:auto;font-size:11px;color:var(--muted);}
 
-  .steps{width:100%;max-width:480px;display:flex;padding:16px 20px 0;}
-  .step{flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;position:relative;}
-  .step:not(:last-child)::after{content:'';position:absolute;top:14px;left:55%;width:90%;height:1px;background:var(--line);opacity:0.3;}
-  .step-circle{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;transition:all .3s;}
-  .step-circle.done{background:var(--gold);color:var(--ink);}
-  .step-circle.active{background:var(--accent);color:#fff;box-shadow:0 0 0 3px rgba(139,26,26,.3);}
-  .step-circle.idle{background:rgba(255,255,255,.1);color:var(--muted);}
-  .step-label{font-size:10px;color:var(--muted);letter-spacing:.5px;}
+/* 步驟列 */
+.steps{width:100%;max-width:480px;display:flex;padding:16px 20px 0;}
+.step{flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;position:relative;}
+.step:not(:last-child)::after{content:'';position:absolute;top:14px;left:55%;width:90%;height:1px;background:var(--line);opacity:0.3;}
+.step-circle{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;transition:all .3s;}
+.step-circle.done{background:var(--gold);color:var(--ink);}
+.step-circle.active{background:var(--accent);color:#fff;box-shadow:0 0 0 3px rgba(139,26,26,.3);}
+.step-circle.idle{background:rgba(255,255,255,.1);color:var(--muted);}
+.step-label{font-size:10px;color:var(--muted);letter-spacing:.5px;text-align:center;}
 
-  main{width:100%;max-width:480px;padding:16px 16px 40px;display:flex;flex-direction:column;gap:14px;}
-  .card{background:var(--paper);border-radius:4px;overflow:hidden;box-shadow:0 4px 24px var(--shadow);}
-  .card-title{background:var(--ink);color:var(--gold);font-family:'Noto Serif TC',serif;font-size:12px;letter-spacing:3px;padding:10px 16px;display:flex;align-items:center;gap:8px;}
+main{width:100%;max-width:480px;padding:16px 16px 40px;display:flex;flex-direction:column;gap:14px;}
+.card{background:var(--paper);border-radius:4px;overflow:hidden;box-shadow:0 4px 24px var(--shadow);}
+.card-title{background:var(--ink);color:var(--gold);font-family:'Noto Serif TC',serif;font-size:12px;letter-spacing:3px;padding:10px 16px;display:flex;align-items:center;gap:8px;}
 
-  /* 上傳 */
-  .upload-zone{margin:16px;padding:28px 20px;border:2px dashed var(--line);border-radius:2px;display:flex;flex-direction:column;align-items:center;gap:12px;cursor:pointer;position:relative;}
-  .upload-zone input[type="file"]{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;z-index:2;}
-  .upload-icon{font-size:40px;pointer-events:none;}
-  .upload-text{font-size:13px;color:var(--muted);text-align:center;line-height:1.8;pointer-events:none;}
-  .upload-fake-btn{background:var(--ink);color:var(--gold);border:1px solid var(--gold);padding:8px 20px;font-size:12px;letter-spacing:2px;pointer-events:none;}
-  #file-chip-row{display:none;align-items:center;gap:10px;margin:12px 16px 0;background:white;padding:10px 14px;border-left:3px solid var(--gold);}
-  #file-chip-row .ficon{font-size:22px;}
-  #file-chip-row .finfo{flex:1;}
-  #file-chip-row .fname{font-size:13px;font-weight:500;color:var(--ink);word-break:break-all;}
-  #file-chip-row .fsize{font-size:11px;color:var(--muted);}
-  #file-chip-row .fremove{font-size:20px;color:var(--muted);cursor:pointer;padding:4px 8px;}
-  #doc-preview-box{display:none;margin:12px 16px 16px;flex-direction:column;gap:6px;}
-  .preview-label{font-size:11px;color:var(--muted);letter-spacing:1px;}
-  #doc-preview-img{width:100%;border:1px solid var(--line);border-radius:2px;display:none;}
-  #pdf-pages-wrap{display:none;flex-direction:column;gap:6px;}
-  #pdf-pages-wrap canvas{width:100%;border:1px solid var(--line);border-radius:2px;display:block;}
-  .pdf-page-label{font-size:11px;color:var(--muted);text-align:center;letter-spacing:1px;}
-  #loading-bar{display:none;padding:16px;text-align:center;font-size:13px;color:var(--muted);letter-spacing:1px;}
-  .spinner{display:inline-block;width:20px;height:20px;border:2px solid var(--line);border-top-color:var(--gold);border-radius:50%;animation:spin .8s linear infinite;vertical-align:middle;margin-right:8px;}
-  @keyframes spin{to{transform:rotate(360deg);}}
+/* 上傳 */
+.upload-zone{margin:16px;padding:28px 20px;border:2px dashed var(--line);border-radius:2px;display:flex;flex-direction:column;align-items:center;gap:12px;cursor:pointer;position:relative;}
+.upload-zone input[type="file"]{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;z-index:2;}
+.upload-icon{font-size:40px;pointer-events:none;}
+.upload-text{font-size:13px;color:var(--muted);text-align:center;line-height:1.8;pointer-events:none;}
+.upload-fake-btn{background:var(--ink);color:var(--gold);border:1px solid var(--gold);padding:8px 20px;font-size:12px;letter-spacing:2px;pointer-events:none;}
+#file-chip-row{display:none;align-items:center;gap:10px;margin:12px 16px 0;background:white;padding:10px 14px;border-left:3px solid var(--gold);}
+#file-chip-row .ficon{font-size:22px;}
+#file-chip-row .finfo{flex:1;}
+#file-chip-row .fname{font-size:13px;font-weight:500;color:var(--ink);word-break:break-all;}
+#file-chip-row .fsize{font-size:11px;color:var(--muted);}
+#file-chip-row .fremove{font-size:20px;color:var(--muted);cursor:pointer;padding:4px 8px;}
+#doc-preview-box{display:none;margin:12px 16px 16px;flex-direction:column;gap:6px;}
+.preview-label{font-size:11px;color:var(--muted);letter-spacing:1px;}
+#doc-preview-img{width:100%;border:1px solid var(--line);border-radius:2px;display:none;}
+#pdf-pages-wrap{display:none;flex-direction:column;gap:8px;}
+.pdf-page-item{display:flex;flex-direction:column;gap:4px;}
+.pdf-page-item canvas{width:100%;border:1px solid var(--line);border-radius:2px;display:block;}
+.pdf-page-label{font-size:11px;color:var(--muted);text-align:center;letter-spacing:1px;}
+#loading-bar{display:none;padding:16px;text-align:center;font-size:13px;color:var(--muted);}
+.spinner{display:inline-block;width:20px;height:20px;border:2px solid var(--line);border-top-color:var(--gold);border-radius:50%;animation:spin .8s linear infinite;vertical-align:middle;margin-right:8px;}
+@keyframes spin{to{transform:rotate(360deg);}}
 
-  /* 簽名板 */
-  .sig-board-wrap{padding:16px;display:flex;flex-direction:column;gap:10px;}
-  .pen-options{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
-  .pen-label{font-size:11px;color:var(--muted);letter-spacing:1px;min-width:40px;}
-  .color-dot{width:24px;height:24px;border-radius:50%;cursor:pointer;border:2px solid transparent;transition:transform .15s,border-color .15s;flex-shrink:0;}
-  .color-dot.active{border-color:var(--gold);transform:scale(1.25);}
-  .size-btn{background:none;border:1px solid var(--line);padding:4px 10px;font-size:11px;cursor:pointer;color:var(--muted);border-radius:2px;font-family:'Noto Sans TC',sans-serif;transition:all .15s;}
-  .size-btn.active{background:var(--ink);color:var(--gold);border-color:var(--ink);}
-  #sig-canvas{background:white;border:1px solid var(--line);border-radius:2px;display:block;width:100%;height:160px;touch-action:none;cursor:crosshair;}
-  .sig-hint{font-size:11px;color:var(--muted);text-align:center;}
+/* 簽名板 */
+.sig-board-wrap{padding:16px;display:flex;flex-direction:column;gap:10px;}
+.pen-options{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
+.pen-label{font-size:11px;color:var(--muted);min-width:40px;}
+.color-dot{width:24px;height:24px;border-radius:50%;cursor:pointer;border:2px solid transparent;transition:transform .15s,border-color .15s;flex-shrink:0;}
+.color-dot.active{border-color:var(--gold);transform:scale(1.25);}
+.size-btn{background:none;border:1px solid var(--line);padding:4px 10px;font-size:11px;cursor:pointer;color:var(--muted);border-radius:2px;font-family:'Noto Sans TC',sans-serif;}
+.size-btn.active{background:var(--ink);color:var(--gold);border-color:var(--ink);}
+#sig-canvas{background:white;border:1px solid var(--line);border-radius:2px;display:block;width:100%;height:160px;touch-action:none;cursor:crosshair;}
+.sig-hint{font-size:11px;color:var(--muted);text-align:center;}
+.sig-actions{display:flex;gap:6px;}
+.btn-undo{padding:11px 14px;background:none;border:1px solid var(--line);font-size:18px;cursor:pointer;color:var(--muted);flex-shrink:0;}
+.btn-undo:disabled{opacity:0.3;cursor:not-allowed;}
+.btn-ghost{flex:1;padding:11px;background:none;border:1px solid var(--line);font-size:12px;letter-spacing:1px;color:var(--muted);cursor:pointer;font-family:'Noto Sans TC',sans-serif;}
+.btn-primary{flex:2;padding:11px;background:var(--accent);border:none;color:white;font-size:12px;letter-spacing:2px;cursor:pointer;font-family:'Noto Sans TC',sans-serif;font-weight:500;}
+.btn-primary:disabled{background:var(--line);color:#aaa;cursor:not-allowed;}
 
-  /* 簽名操作按鈕列 */
-  .sig-actions{display:flex;gap:6px;}
-  .btn-undo{
-    padding:11px 14px;background:none;border:1px solid var(--line);
-    font-size:18px;cursor:pointer;color:var(--muted);border-radius:2px;
-    transition:all .15s;flex-shrink:0;
-  }
-  .btn-undo:active{border-color:var(--ink);color:var(--ink);}
-  .btn-ghost{flex:1;padding:11px;background:none;border:1px solid var(--line);font-size:12px;letter-spacing:1px;color:var(--muted);cursor:pointer;font-family:'Noto Sans TC',sans-serif;}
-  .btn-primary{flex:2;padding:11px;background:var(--accent);border:none;color:white;font-size:12px;letter-spacing:2px;cursor:pointer;font-family:'Noto Sans TC',sans-serif;font-weight:500;}
-  .btn-primary:disabled{background:var(--line);color:#aaa;cursor:not-allowed;}
+/* 日期戳記選項 */
+.date-stamp-section{background:white;border:1px solid var(--line);border-radius:2px;padding:12px 14px;display:flex;flex-direction:column;gap:8px;}
+.date-stamp-section .ds-title{font-size:12px;color:var(--ink);font-weight:500;letter-spacing:1px;}
+.ds-toggle-row{display:flex;align-items:center;gap:10px;}
+.toggle-switch{position:relative;width:44px;height:24px;flex-shrink:0;}
+.toggle-switch input{opacity:0;width:0;height:0;}
+.toggle-slider{position:absolute;inset:0;background:var(--line);border-radius:24px;cursor:pointer;transition:.3s;}
+.toggle-slider:before{content:'';position:absolute;width:18px;height:18px;left:3px;bottom:3px;background:white;border-radius:50%;transition:.3s;}
+input:checked+.toggle-slider{background:var(--accent);}
+input:checked+.toggle-slider:before{transform:translateX(20px);}
+.ds-label{font-size:12px;color:var(--muted);}
+.ds-preview{font-size:13px;color:var(--ink);font-weight:500;letter-spacing:1px;}
+.ds-format-row{display:flex;gap:6px;flex-wrap:wrap;}
+.ds-fmt-btn{background:none;border:1px solid var(--line);padding:5px 10px;font-size:11px;cursor:pointer;color:var(--muted);border-radius:2px;font-family:'Noto Sans TC',sans-serif;}
+.ds-fmt-btn.active{background:var(--ink);color:var(--gold);border-color:var(--ink);}
 
-  #sig-saved-row{display:none;margin:0 16px 16px;align-items:center;gap:12px;background:white;padding:10px 12px;border:1px solid var(--line);border-radius:2px;}
-  #sig-thumb{height:48px;max-width:120px;object-fit:contain;}
-  #sig-saved-row .sinfo{flex:1;}
-  #sig-saved-row .sinfo strong{font-size:13px;color:var(--ink);}
-  #sig-saved-row .sinfo p{font-size:11px;color:var(--muted);}
-  .re-sign-btn{font-size:11px;color:var(--accent);background:none;border:1px solid var(--accent);padding:5px 10px;cursor:pointer;font-family:'Noto Sans TC',sans-serif;}
+#sig-saved-row{display:none;margin:0 16px 16px;align-items:center;gap:12px;background:white;padding:10px 12px;border:1px solid var(--line);border-radius:2px;}
+#sig-thumb{height:48px;max-width:120px;object-fit:contain;}
+#sig-saved-row .sinfo{flex:1;}
+#sig-saved-row .sinfo strong{font-size:13px;color:var(--ink);}
+#sig-saved-row .sinfo p{font-size:11px;color:var(--muted);}
+.re-sign-btn{font-size:11px;color:var(--accent);background:none;border:1px solid var(--accent);padding:5px 10px;cursor:pointer;font-family:'Noto Sans TC',sans-serif;}
 
-  /* 放置 */
-  #card-place{display:none;}
-  .place-hint{padding:10px 16px;font-size:12px;color:var(--accent);background:rgba(139,26,26,.06);letter-spacing:1px;}
-  #doc-place-wrap{margin:12px 16px;position:relative;background:white;border:1px solid var(--line);border-radius:2px;overflow:hidden;min-height:160px;}
-  #doc-place-img{width:100%;display:none;}
-  #doc-place-pdfcanvas{width:100%;display:none;}
-  .sig-sticker{position:absolute;cursor:move;user-select:none;touch-action:none;}
-  .sig-sticker img{width:100%;height:100%;object-fit:contain;display:block;pointer-events:none;}
-  .sticker-border{position:absolute;inset:-3px;border:2px dashed var(--accent);border-radius:2px;pointer-events:none;}
-  .del-btn{position:absolute;top:-13px;right:-13px;width:24px;height:24px;border-radius:50%;background:var(--accent);color:white;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:bold;cursor:pointer;z-index:10;box-shadow:0 2px 6px rgba(0,0,0,.35);}
-  .resize-btn{position:absolute;bottom:-11px;right:-11px;width:22px;height:22px;border-radius:50%;background:var(--gold);color:var(--ink);display:flex;align-items:center;justify-content:center;font-size:12px;cursor:se-resize;z-index:10;box-shadow:0 2px 6px rgba(0,0,0,.3);}
-  #place-confirm-btn{display:block;width:calc(100% - 32px);margin:0 16px 16px;padding:13px;background:var(--accent);border:none;color:white;font-size:12px;letter-spacing:3px;cursor:pointer;font-family:'Noto Sans TC',sans-serif;font-weight:500;}
+/* 放置頁面 */
+#card-place{display:none;}
+.place-hint{padding:10px 16px;font-size:12px;color:var(--accent);background:rgba(139,26,26,.06);}
 
-  /* 下載/儲存 */
-  #card-export{display:none;}
-  .export-wrap{padding:16px;display:flex;flex-direction:column;gap:12px;}
-  .export-info{font-size:13px;color:var(--ink);background:rgba(201,168,76,.15);border-left:3px solid var(--gold);padding:12px;line-height:1.9;}
-  #result-img-wrap{display:none;flex-direction:column;gap:10px;}
-  #result-img{width:100%;border:2px solid var(--gold);border-radius:2px;display:block;}
-  .save-hint{font-size:13px;color:var(--ink);background:rgba(201,168,76,.15);border-left:3px solid var(--gold);padding:12px;line-height:1.9;}
-  .btn-restart{width:100%;padding:11px;background:none;border:1px solid var(--line);font-size:12px;letter-spacing:1px;color:var(--muted);cursor:pointer;font-family:'Noto Sans TC',sans-serif;}
+/* PDF多頁選頁器 */
+#pdf-page-selector{display:none;padding:12px 16px;flex-direction:column;gap:8px;}
+.page-sel-title{font-size:12px;color:var(--ink);font-weight:500;letter-spacing:1px;}
+.page-tabs{display:flex;gap:6px;flex-wrap:wrap;}
+.page-tab{background:none;border:1px solid var(--line);padding:6px 12px;font-size:12px;cursor:pointer;color:var(--muted);border-radius:2px;font-family:'Noto Sans TC',sans-serif;transition:all .15s;}
+.page-tab.active{background:var(--accent);color:white;border-color:var(--accent);}
+.page-tab.signed{border-color:var(--gold);color:var(--gold);}
+.page-tab.signed.active{background:var(--gold);color:var(--ink);}
+.page-nav-row{display:flex;gap:8px;align-items:center;}
+.page-nav-info{font-size:12px;color:var(--muted);flex:1;text-align:center;}
 
-  #toast{position:fixed;bottom:30px;left:50%;transform:translateX(-50%);background:var(--ink);color:var(--gold);padding:10px 22px;border:1px solid var(--gold);font-size:12px;letter-spacing:1px;opacity:0;pointer-events:none;transition:opacity .3s;z-index:999;white-space:nowrap;max-width:90vw;text-align:center;}
-  #toast.show{opacity:1;}
-  #merge-canvas{display:none;}
+#doc-place-wrap{margin:12px 16px;position:relative;background:white;border:1px solid var(--line);border-radius:2px;overflow:hidden;min-height:160px;}
+#doc-place-img{width:100%;display:none;}
+#doc-place-pdfcanvas{width:100%;display:none;}
+
+/* 簽名貼圖 */
+.sig-sticker{position:absolute;cursor:move;user-select:none;touch-action:none;}
+.sig-sticker img{width:100%;height:100%;object-fit:contain;display:block;pointer-events:none;}
+.sticker-border{position:absolute;inset:-3px;border:2px dashed var(--accent);border-radius:2px;pointer-events:none;}
+.sticker-border.date-type{border-color:var(--gold);}
+.del-btn{position:absolute;top:-13px;right:-13px;width:24px;height:24px;border-radius:50%;background:var(--accent);color:white;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:bold;cursor:pointer;z-index:10;box-shadow:0 2px 6px rgba(0,0,0,.35);}
+.resize-btn{position:absolute;bottom:-11px;right:-11px;width:22px;height:22px;border-radius:50%;background:var(--gold);color:var(--ink);display:flex;align-items:center;justify-content:center;font-size:12px;cursor:se-resize;z-index:10;box-shadow:0 2px 6px rgba(0,0,0,.3);}
+
+.place-btn-row{display:flex;gap:8px;margin:0 16px 16px;}
+#prev-page-btn,#next-page-btn{flex:1;padding:10px;background:none;border:1px solid var(--line);font-size:12px;cursor:pointer;color:var(--muted);font-family:'Noto Sans TC',sans-serif;}
+#prev-page-btn:disabled,#next-page-btn:disabled{opacity:0.3;cursor:not-allowed;}
+#place-confirm-btn{flex:2;padding:10px;background:var(--accent);border:none;color:white;font-size:12px;letter-spacing:2px;cursor:pointer;font-family:'Noto Sans TC',sans-serif;font-weight:500;}
+
+/* 下載 */
+#card-export{display:none;}
+.export-wrap{padding:16px;display:flex;flex-direction:column;gap:12px;}
+.export-info{font-size:13px;color:var(--ink);background:rgba(201,168,76,.15);border-left:3px solid var(--gold);padding:12px;line-height:1.9;}
+#result-pages-wrap{display:none;flex-direction:column;gap:16px;}
+.result-page-block{display:flex;flex-direction:column;gap:6px;}
+.result-page-title{font-size:11px;color:var(--muted);letter-spacing:1px;}
+.result-page-img{width:100%;border:2px solid var(--gold);border-radius:2px;display:block;}
+.save-hint{font-size:13px;color:var(--ink);background:rgba(201,168,76,.15);border-left:3px solid var(--gold);padding:12px;line-height:1.9;}
+.btn-restart{width:100%;padding:11px;background:none;border:1px solid var(--line);font-size:12px;letter-spacing:1px;color:var(--muted);cursor:pointer;font-family:'Noto Sans TC',sans-serif;}
+
+#toast{position:fixed;bottom:30px;left:50%;transform:translateX(-50%);background:var(--ink);color:var(--gold);padding:10px 22px;border:1px solid var(--gold);font-size:12px;opacity:0;pointer-events:none;transition:opacity .3s;z-index:999;white-space:nowrap;max-width:90vw;text-align:center;}
+#toast.show{opacity:1;}
+#merge-canvas{display:none;}
 </style>
 </head>
 <body>
 
 <header>
-  <div class="logo-mark">元</div>
-  <h1>電子簽名</h1>
-  <span>DEMO v1.3</span>
+  <div class="logo-mark">EZ</div>
+  <h1>EZSign</h1>
+  <span>v1.4</span>
 </header>
 
 <div class="steps">
-  <div class="step"><div class="step-circle active" id="s1">1</div><div class="step-label">上傳文件</div></div>
-  <div class="step"><div class="step-circle idle"   id="s2">2</div><div class="step-label">手寫簽名</div></div>
-  <div class="step"><div class="step-circle idle"   id="s3">3</div><div class="step-label">放置位置</div></div>
-  <div class="step"><div class="step-circle idle"   id="s4">4</div><div class="step-label">儲存</div></div>
+  <div class="step"><div class="step-circle active" id="s1">1</div><div class="step-label">上傳</div></div>
+  <div class="step"><div class="step-circle idle" id="s2">2</div><div class="step-label">簽名</div></div>
+  <div class="step"><div class="step-circle idle" id="s3">3</div><div class="step-label">放置</div></div>
+  <div class="step"><div class="step-circle idle" id="s4">4</div><div class="step-label">儲存</div></div>
 </div>
 
 <main>
 
-  <!-- ① 上傳 -->
-  <div class="card" id="card-upload">
-    <div class="card-title">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-      步驟一｜選擇要簽名的文件
+<!-- ① 上傳 -->
+<div class="card" id="card-upload">
+  <div class="card-title">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+    步驟一｜選擇要簽名的文件
+  </div>
+  <div class="upload-zone">
+    <input type="file" id="file-input" accept="image/jpeg,image/png,image/gif,image/webp,.pdf,application/pdf">
+    <div class="upload-icon">📄</div>
+    <div class="upload-text">支援 JPG、PNG 圖片 及 PDF 文件<br>點此選擇文件</div>
+    <div class="upload-fake-btn">選擇文件</div>
+  </div>
+  <div id="file-chip-row">
+    <div class="ficon" id="file-icon-el">📄</div>
+    <div class="finfo">
+      <div class="fname" id="file-name-el">—</div>
+      <div class="fsize" id="file-size-el">—</div>
     </div>
-    <div class="upload-zone" id="upload-zone">
-      <input type="file" id="file-input" accept="image/jpeg,image/png,image/gif,image/webp,image/bmp,.pdf,application/pdf">
-      <div class="upload-icon">📄</div>
-      <div class="upload-text">支援 JPG、PNG 圖片 及 PDF 文件<br>點此選擇文件</div>
-      <div class="upload-fake-btn">選擇文件</div>
+    <div class="fremove" onclick="removeFile()">✕</div>
+  </div>
+  <div id="doc-preview-box">
+    <div class="preview-label">▸ 文件預覽</div>
+    <img id="doc-preview-img" src="" alt="文件預覽">
+    <div id="loading-bar"><span class="spinner"></span>PDF 載入中，請稍候…</div>
+    <div id="pdf-pages-wrap"></div>
+  </div>
+</div>
+
+<!-- ② 簽名 -->
+<div class="card" id="card-sign">
+  <div class="card-title">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg>
+    步驟二｜在下方手寫簽名
+  </div>
+  <div class="sig-board-wrap">
+    <div class="pen-options">
+      <span class="pen-label">筆色</span>
+      <div class="color-dot active" style="background:#1a1a2e" data-color="#1a1a2e" onclick="setColor(this)"></div>
+      <div class="color-dot" style="background:#8b1a1a" data-color="#8b1a1a" onclick="setColor(this)"></div>
+      <div class="color-dot" style="background:#1a3a8b" data-color="#1a3a8b" onclick="setColor(this)"></div>
+      <div class="color-dot" style="background:#1a7a3a" data-color="#1a7a3a" onclick="setColor(this)"></div>
+      <span class="pen-label" style="margin-left:6px">粗細</span>
+      <button class="size-btn" data-size="2" onclick="setSize(this)">細</button>
+      <button class="size-btn active" data-size="4" onclick="setSize(this)">中</button>
+      <button class="size-btn" data-size="7" onclick="setSize(this)">粗</button>
     </div>
-    <div id="file-chip-row">
-      <div class="ficon" id="file-icon-el">📄</div>
-      <div class="finfo">
-        <div class="fname" id="file-name-el">—</div>
-        <div class="fsize" id="file-size-el">—</div>
-      </div>
-      <div class="fremove" onclick="removeFile()">✕</div>
-    </div>
-    <div id="doc-preview-box">
-      <div class="preview-label">▸ 文件預覽</div>
-      <img id="doc-preview-img" src="" alt="文件預覽">
-      <div id="loading-bar"><span class="spinner"></span>PDF 載入中，請稍候…</div>
-      <div id="pdf-pages-wrap"></div>
+    <canvas id="sig-canvas"></canvas>
+    <div class="sig-hint">用手指在上方白色區域書寫簽名</div>
+    <div class="sig-actions">
+      <button class="btn-undo" id="undo-btn" onclick="undoStroke()" disabled title="上一步">↩</button>
+      <button class="btn-ghost" onclick="clearSig()">全部清除</button>
+      <button class="btn-primary" id="apply-btn" onclick="applySig()" disabled>套用 →</button>
     </div>
   </div>
 
-  <!-- ② 簽名 -->
-  <div class="card" id="card-sign">
-    <div class="card-title">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg>
-      步驟二｜在下方手寫簽名
-    </div>
-    <div class="sig-board-wrap">
-      <div class="pen-options">
-        <span class="pen-label">筆色</span>
-        <div class="color-dot active" style="background:#1a1a2e" data-color="#1a1a2e" onclick="setColor(this)"></div>
-        <div class="color-dot" style="background:#8b1a1a" data-color="#8b1a1a" onclick="setColor(this)"></div>
-        <div class="color-dot" style="background:#1a3a8b" data-color="#1a3a8b" onclick="setColor(this)"></div>
-        <div class="color-dot" style="background:#1a7a3a" data-color="#1a7a3a" onclick="setColor(this)"></div>
-        <span class="pen-label" style="margin-left:6px">粗細</span>
-        <button class="size-btn" data-size="2" onclick="setSize(this)">細</button>
-        <button class="size-btn active" data-size="4" onclick="setSize(this)">中</button>
-        <button class="size-btn" data-size="7" onclick="setSize(this)">粗</button>
+  <!-- 日期戳記選項 -->
+  <div style="padding:0 16px 16px;">
+    <div class="date-stamp-section">
+      <div class="ds-title">📅 日期戳記</div>
+      <div class="ds-toggle-row">
+        <label class="toggle-switch">
+          <input type="checkbox" id="date-toggle" onchange="toggleDateStamp()" checked>
+          <span class="toggle-slider"></span>
+        </label>
+        <span class="ds-label">自動附上簽名日期</span>
       </div>
-      <canvas id="sig-canvas"></canvas>
-      <div class="sig-hint">用手指在上方白色區域書寫簽名</div>
-      <div class="sig-actions">
-        <!-- undo 上一步 -->
-        <button class="btn-undo" id="undo-btn" onclick="undoStroke()" title="上一步" disabled>↩</button>
-        <button class="btn-ghost" onclick="clearSig()">全部清除</button>
-        <button class="btn-primary" id="apply-btn" onclick="applySig()" disabled>套用 →</button>
-      </div>
-    </div>
-    <div id="sig-saved-row">
-      <img id="sig-thumb" src="" alt="簽名">
-      <div class="sinfo">
-        <strong>簽名已儲存</strong>
-        <p>可拖曳到文件任意位置</p>
-      </div>
-      <button class="re-sign-btn" onclick="reSign()">重新簽名</button>
-    </div>
-  </div>
-
-  <!-- ③ 放置 -->
-  <div class="card" id="card-place">
-    <div class="card-title">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/></svg>
-      步驟三｜拖曳簽名到指定位置
-    </div>
-    <div class="place-hint">✦ 拖曳移動位置　◎ 右下角金點縮放　✕ 刪除</div>
-    <div id="doc-place-wrap">
-      <img id="doc-place-img" src="" alt="文件">
-      <canvas id="doc-place-pdfcanvas"></canvas>
-    </div>
-    <button id="place-confirm-btn" onclick="goExport()">確認位置，準備儲存 →</button>
-  </div>
-
-  <!-- ④ 儲存 -->
-  <div class="card" id="card-export">
-    <div class="card-title">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-      步驟四｜儲存簽名後的文件
-    </div>
-    <div class="export-wrap">
-      <div class="export-info" id="export-info-text">
-        <span class="spinner"></span>合併中，請稍候…
-      </div>
-      <canvas id="merge-canvas"></canvas>
-      <div id="result-img-wrap">
-        <div class="save-hint">
-          ✅ 合併完成！<br>
-          👇 <strong>長按下方圖片</strong> → 點「<strong>儲存圖片 / 加入照片</strong>」<br>
-          即可存到手機相簿
+      <div id="date-stamp-options">
+        <div class="ds-preview" id="date-preview"></div>
+        <div class="ds-format-row">
+          <button class="ds-fmt-btn active" data-fmt="zh" onclick="setDateFmt(this)">民國年</button>
+          <button class="ds-fmt-btn" data-fmt="ad" onclick="setDateFmt(this)">西元年</button>
+          <button class="ds-fmt-btn" data-fmt="slash" onclick="setDateFmt(this)">2025/05/23</button>
         </div>
-        <img id="result-img" src="" alt="簽名文件">
       </div>
-      <button class="btn-restart" onclick="location.reload()">↺ 重新開始</button>
     </div>
   </div>
+
+  <div id="sig-saved-row">
+    <img id="sig-thumb" src="" alt="簽名">
+    <div class="sinfo">
+      <strong>簽名已儲存</strong>
+      <p>可拖曳到文件任意位置</p>
+    </div>
+    <button class="re-sign-btn" onclick="reSign()">重新簽名</button>
+  </div>
+</div>
+
+<!-- ③ 放置 -->
+<div class="card" id="card-place">
+  <div class="card-title">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/></svg>
+    步驟三｜拖曳簽名到指定位置
+  </div>
+  <div class="place-hint">✦ 拖曳移動　◎ 右下角縮放　✕ 刪除</div>
+
+  <!-- PDF 多頁選頁器 -->
+  <div id="pdf-page-selector">
+    <div class="page-sel-title">📄 選擇要簽名的頁面</div>
+    <div class="page-tabs" id="page-tabs"></div>
+    <div class="page-nav-info" id="page-nav-info"></div>
+  </div>
+
+  <div id="doc-place-wrap">
+    <img id="doc-place-img" src="" alt="文件">
+    <canvas id="doc-place-pdfcanvas"></canvas>
+  </div>
+  <div class="place-btn-row">
+    <button id="prev-page-btn" onclick="switchPage(-1)" disabled>← 上一頁</button>
+    <button id="place-confirm-btn" onclick="goExport()">完成，準備儲存 →</button>
+    <button id="next-page-btn" onclick="switchPage(1)" disabled>下一頁 →</button>
+  </div>
+</div>
+
+<!-- ④ 儲存 -->
+<div class="card" id="card-export">
+  <div class="card-title">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+    步驟四｜儲存簽名後的文件
+  </div>
+  <div class="export-wrap">
+    <div class="export-info" id="export-info-text"><span class="spinner"></span> 合併中，請稍候…</div>
+    <canvas id="merge-canvas"></canvas>
+    <div id="result-pages-wrap"></div>
+    <button class="btn-restart" onclick="location.reload()">↺ 重新開始</button>
+  </div>
+</div>
 
 </main>
 <div id="toast"></div>
@@ -240,320 +299,408 @@ pdfjsLib.GlobalWorkerOptions.workerSrc =
   'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
 /* ══ 狀態 ══ */
-let penColor = '#1a1a2e', penSize = 4;
-let isDrawing = false, lastX = 0, lastY = 0;
-let sigDataURL = null, docFile = null, isPDF = false;
-let docImgDataURL = null, pdfFirstPageURL = null;
+let penColor='#1a1a2e', penSize=4;
+let isDrawing=false, lastX=0, lastY=0;
+let sigDataURL=null, docFile=null, isPDF=false;
+let docImgDataURL=null;
+let pdfPages=[];          // { canvas, dataURL } 每頁資料
+let totalPdfPages=0;
+let currentPageIdx=0;     // 目前放置簽名的頁碼（0-based）
+let pageStickers={};      // { pageIdx: [ sticker資訊... ] } 各頁貼圖
+let strokeSnapshots=[];
+let points=[], canvasW=0, canvasH=0;
 
-/* ══ 筆跡 undo：儲存每一筆的快照 ══ */
-let strokeSnapshots = [];   // 每筆結束後存一張 imageData
-let isStrokeActive  = false;
+/* ══ 日期戳記 ══ */
+let dateEnabled=true;
+let dateFmt='zh';
+
+function getTodayStr(fmt) {
+  const now = new Date();
+  const y = now.getFullYear(), m = now.getMonth()+1, d = now.getDate();
+  const ym = y - 1911;
+  if (fmt==='zh')    return `民國${ym}年${m}月${d}日`;
+  if (fmt==='ad')    return `${y}年${m}月${d}日`;
+  if (fmt==='slash') return `${y}/${String(m).padStart(2,'0')}/${String(d).padStart(2,'0')}`;
+  return '';
+}
+
+function updateDatePreview() {
+  document.getElementById('date-preview').textContent = dateEnabled ? getTodayStr(dateFmt) : '（不附加日期）';
+}
+function toggleDateStamp() {
+  dateEnabled = document.getElementById('date-toggle').checked;
+  document.getElementById('date-stamp-options').style.opacity = dateEnabled ? '1' : '0.4';
+  updateDatePreview();
+}
+function setDateFmt(el) {
+  document.querySelectorAll('.ds-fmt-btn').forEach(b=>b.classList.remove('active'));
+  el.classList.add('active'); dateFmt = el.dataset.fmt;
+  updateDatePreview();
+}
+window.addEventListener('load', updateDatePreview);
 
 /* ══ 簽名 Canvas ══ */
 const canvas = document.getElementById('sig-canvas');
 const ctx    = canvas.getContext('2d');
-let canvasW = 0, canvasH = 0;  // 實際像素尺寸（含 dpr）
 
 function initCanvas() {
   const rect = canvas.getBoundingClientRect();
-  if (!rect.width) { setTimeout(initCanvas, 100); return; }
-  const dpr = window.devicePixelRatio || 1;
-  canvasW = rect.width  * dpr;
-  canvasH = rect.height * dpr;
-  canvas.width  = canvasW;
-  canvas.height = canvasH;
-  ctx.scale(dpr, dpr);
-  ctx.lineCap = 'round'; ctx.lineJoin = 'round';
-  strokeSnapshots = [];
+  if(!rect.width){setTimeout(initCanvas,100);return;}
+  const dpr = window.devicePixelRatio||1;
+  canvasW=rect.width*dpr; canvasH=rect.height*dpr;
+  canvas.width=canvasW; canvas.height=canvasH;
+  ctx.scale(dpr,dpr);
+  ctx.lineCap='round'; ctx.lineJoin='round';
+  strokeSnapshots=[];
   updateUndoBtn();
 }
-window.addEventListener('load', initCanvas);
-window.addEventListener('resize', () => setTimeout(initCanvas, 200));
+window.addEventListener('load',initCanvas);
+window.addEventListener('resize',()=>setTimeout(initCanvas,200));
 
-function getXY(e, el) {
-  const r = el.getBoundingClientRect();
-  const s = e.touches ? e.touches[0] : e;
-  return { x: s.clientX - r.left, y: s.clientY - r.top };
+function getXY(e,el){
+  const r=el.getBoundingClientRect(), s=e.touches?e.touches[0]:e;
+  return {x:s.clientX-r.left, y:s.clientY-r.top};
 }
-
-/* ── Catmull-Rom 貝茲平滑演算法 ── */
-let points = [];   // 目前筆畫的點集合
-
-function startDraw(e) {
-  e.preventDefault();
-  isDrawing = true; isStrokeActive = true;
-  const p = getXY(e, canvas);
-  lastX = p.x; lastY = p.y;
-  points = [{ x: p.x, y: p.y }];
-  ctx.beginPath(); ctx.moveTo(p.x, p.y);
+function startDraw(e){
+  e.preventDefault(); isDrawing=true;
+  const p=getXY(e,canvas); lastX=p.x; lastY=p.y;
+  points=[{x:p.x,y:p.y}];
 }
-
-function doDraw(e) {
-  if (!isDrawing) return; e.preventDefault();
-  const p = getXY(e, canvas);
-
-  points.push({ x: p.x, y: p.y });
-
-  // 用最後 4 個點做平滑曲線
-  if (points.length >= 4) {
-    const len = points.length;
-    smoothCurve(
-      points[len-4], points[len-3],
-      points[len-2], points[len-1]
-    );
+function doDraw(e){
+  if(!isDrawing)return; e.preventDefault();
+  const p=getXY(e,canvas);
+  points.push({x:p.x,y:p.y});
+  if(points.length>=4){
+    const l=points.length;
+    smoothCurve(points[l-4],points[l-3],points[l-2],points[l-1]);
   } else {
-    // 點數不夠時直接畫線
-    ctx.strokeStyle = penColor; ctx.lineWidth = penSize;
-    ctx.beginPath(); ctx.moveTo(lastX, lastY); ctx.lineTo(p.x, p.y); ctx.stroke();
+    ctx.strokeStyle=penColor; ctx.lineWidth=penSize;
+    ctx.beginPath(); ctx.moveTo(lastX,lastY); ctx.lineTo(p.x,p.y); ctx.stroke();
   }
-  lastX = p.x; lastY = p.y;
-  document.getElementById('apply-btn').disabled = false;
+  lastX=p.x; lastY=p.y;
+  document.getElementById('apply-btn').disabled=false;
 }
-
-function smoothCurve(p0, p1, p2, p3) {
-  // Catmull-Rom 轉換成 Bezier 控制點
-  const cp1x = p1.x + (p2.x - p0.x) / 6;
-  const cp1y = p1.y + (p2.y - p0.y) / 6;
-  const cp2x = p2.x - (p3.x - p1.x) / 6;
-  const cp2y = p2.y - (p3.y - p1.y) / 6;
-  ctx.strokeStyle = penColor; ctx.lineWidth = penSize;
-  ctx.beginPath(); ctx.moveTo(p1.x, p1.y);
-  ctx.bezierCurveTo(cp1x, cp1y, cp2x, cp2y, p2.x, p2.y);
+function smoothCurve(p0,p1,p2,p3){
+  const cp1x=p1.x+(p2.x-p0.x)/6, cp1y=p1.y+(p2.y-p0.y)/6;
+  const cp2x=p2.x-(p3.x-p1.x)/6, cp2y=p2.y-(p3.y-p1.y)/6;
+  ctx.strokeStyle=penColor; ctx.lineWidth=penSize;
+  ctx.beginPath(); ctx.moveTo(p1.x,p1.y);
+  ctx.bezierCurveTo(cp1x,cp1y,cp2x,cp2y,p2.x,p2.y);
   ctx.stroke();
 }
-
-function endDraw(e) {
-  if (!isDrawing) return;
-  isDrawing = false;
-
-  // 筆畫結束：收尾最後幾個點
-  if (points.length >= 2 && points.length < 4) {
-    const last = points[points.length-1];
-    ctx.strokeStyle = penColor; ctx.lineWidth = penSize;
-    ctx.beginPath();
-    ctx.moveTo(points[0].x, points[0].y);
-    for (let i = 1; i < points.length; i++) ctx.lineTo(points[i].x, points[i].y);
+function endDraw(){
+  if(!isDrawing)return; isDrawing=false;
+  if(points.length>=2&&points.length<4){
+    ctx.strokeStyle=penColor; ctx.lineWidth=penSize;
+    ctx.beginPath(); ctx.moveTo(points[0].x,points[0].y);
+    for(let i=1;i<points.length;i++) ctx.lineTo(points[i].x,points[i].y);
     ctx.stroke();
   }
-
-  // 點（單點輕觸）
-  if (points.length === 1) {
-    ctx.fillStyle = penColor;
-    ctx.beginPath();
-    ctx.arc(points[0].x, points[0].y, penSize/2, 0, Math.PI*2);
-    ctx.fill();
+  if(points.length===1){
+    ctx.fillStyle=penColor;
+    ctx.beginPath(); ctx.arc(points[0].x,points[0].y,penSize/2,0,Math.PI*2); ctx.fill();
   }
-
-  points = [];
-  // 儲存這一筆的快照（供 undo 使用）
-  strokeSnapshots.push(ctx.getImageData(0, 0, canvasW, canvasH));
-  isStrokeActive = false;
+  points=[];
+  strokeSnapshots.push(ctx.getImageData(0,0,canvasW,canvasH));
   updateUndoBtn();
 }
+canvas.addEventListener('mousedown',startDraw);
+canvas.addEventListener('mousemove',doDraw);
+canvas.addEventListener('mouseup',endDraw);
+canvas.addEventListener('mouseleave',endDraw);
+canvas.addEventListener('touchstart',startDraw,{passive:false});
+canvas.addEventListener('touchmove',doDraw,{passive:false});
+canvas.addEventListener('touchend',endDraw);
 
-canvas.addEventListener('mousedown',  startDraw);
-canvas.addEventListener('mousemove',  doDraw);
-canvas.addEventListener('mouseup',    endDraw);
-canvas.addEventListener('mouseleave', endDraw);
-canvas.addEventListener('touchstart', startDraw, { passive:false });
-canvas.addEventListener('touchmove',  doDraw,    { passive:false });
-canvas.addEventListener('touchend',   endDraw);
-
-/* ── 上一步（undo）── */
-function undoStroke() {
-  if (strokeSnapshots.length === 0) return;
-  strokeSnapshots.pop();  // 移除最新一筆
-  if (strokeSnapshots.length === 0) {
-    // 全部清空
-    ctx.clearRect(0, 0, canvasW, canvasH);
-    document.getElementById('apply-btn').disabled = true;
-  } else {
-    // 還原到上一筆的狀態
-    ctx.putImageData(strokeSnapshots[strokeSnapshots.length-1], 0, 0);
-  }
+function undoStroke(){
+  if(!strokeSnapshots.length)return;
+  strokeSnapshots.pop();
+  if(!strokeSnapshots.length){ctx.clearRect(0,0,canvasW,canvasH);document.getElementById('apply-btn').disabled=true;}
+  else ctx.putImageData(strokeSnapshots[strokeSnapshots.length-1],0,0);
   updateUndoBtn();
 }
+function updateUndoBtn(){document.getElementById('undo-btn').disabled=!strokeSnapshots.length;}
+function clearSig(){ctx.clearRect(0,0,canvasW,canvasH);strokeSnapshots=[];document.getElementById('apply-btn').disabled=true;updateUndoBtn();}
+function setColor(el){document.querySelectorAll('.color-dot').forEach(d=>d.classList.remove('active'));el.classList.add('active');penColor=el.dataset.color;}
+function setSize(el){document.querySelectorAll('.size-btn').forEach(b=>b.classList.remove('active'));el.classList.add('active');penSize=parseInt(el.dataset.size);}
 
-function updateUndoBtn() {
-  document.getElementById('undo-btn').disabled = strokeSnapshots.length === 0;
-}
-
-function clearSig() {
-  ctx.clearRect(0, 0, canvasW, canvasH);
-  strokeSnapshots = [];
-  document.getElementById('apply-btn').disabled = true;
-  updateUndoBtn();
-}
-
-function setColor(el) {
-  document.querySelectorAll('.color-dot').forEach(d => d.classList.remove('active'));
-  el.classList.add('active'); penColor = el.dataset.color;
-}
-function setSize(el) {
-  document.querySelectorAll('.size-btn').forEach(b => b.classList.remove('active'));
-  el.classList.add('active'); penSize = parseInt(el.dataset.size);
+/* ══ 產生日期戳記圖片 ══ */
+function makeDateCanvas(text) {
+  const dc = document.createElement('canvas');
+  const fontSize = 28;
+  dc.height = fontSize + 16;
+  const dtx = dc.getContext('2d');
+  dtx.font = `${fontSize}px 'Noto Serif TC',serif`;
+  const tw = dtx.measureText(text).width;
+  dc.width = tw + 24;
+  dtx.font = `${fontSize}px 'Noto Serif TC',serif`;
+  dtx.fillStyle = 'rgba(0,0,0,0)';
+  dtx.fillRect(0,0,dc.width,dc.height);
+  dtx.fillStyle = '#8b1a1a';
+  dtx.fillText(text, 12, fontSize + 4);
+  return dc.toDataURL('image/png');
 }
 
 /* ══ 上傳文件 ══ */
-document.getElementById('file-input').addEventListener('change', function(e) {
-  const file = e.target.files[0];
-  if (!file) return;
-  loadFile(file);
+document.getElementById('file-input').addEventListener('change',function(e){
+  const file=e.target.files[0]; if(!file)return; loadFile(file);
 });
 
-function loadFile(file) {
-  docFile = file;
-  isPDF = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
-  document.getElementById('file-icon-el').textContent = isPDF ? '📕' : '🖼️';
-  document.getElementById('file-name-el').textContent = file.name;
-  document.getElementById('file-size-el').textContent = (file.size/1024).toFixed(1) + ' KB';
-  document.getElementById('upload-zone').style.display    = 'none';
-  document.getElementById('file-chip-row').style.display  = 'flex';
-  document.getElementById('doc-preview-box').style.display = 'flex';
-  document.getElementById('doc-preview-img').style.display = 'none';
-  document.getElementById('loading-bar').style.display    = 'none';
-  document.getElementById('pdf-pages-wrap').style.display = 'none';
-  document.getElementById('pdf-pages-wrap').innerHTML     = '';
+function loadFile(file){
+  docFile=file; pdfPages=[]; pageStickers={};
+  isPDF=file.type==='application/pdf'||file.name.toLowerCase().endsWith('.pdf');
+  document.getElementById('file-icon-el').textContent=isPDF?'📕':'🖼️';
+  document.getElementById('file-name-el').textContent=file.name;
+  document.getElementById('file-size-el').textContent=(file.size/1024).toFixed(1)+' KB';
+  document.getElementById('upload-zone').style.display='none';
+  document.getElementById('file-chip-row').style.display='flex';
+  document.getElementById('doc-preview-box').style.display='flex';
+  document.getElementById('doc-preview-img').style.display='none';
+  document.getElementById('loading-bar').style.display='none';
+  document.getElementById('pdf-pages-wrap').style.display='none';
+  document.getElementById('pdf-pages-wrap').innerHTML='';
 
-  const reader = new FileReader();
-  if (!isPDF) {
-    reader.onload = ev => {
-      docImgDataURL = ev.target.result;
-      const img = document.getElementById('doc-preview-img');
-      img.src = docImgDataURL; img.style.display = 'block';
-      document.getElementById('doc-place-img').src = docImgDataURL;
-      document.getElementById('doc-place-img').style.display = 'block';
-      document.getElementById('doc-place-pdfcanvas').style.display = 'none';
+  const reader=new FileReader();
+  if(!isPDF){
+    reader.onload=ev=>{
+      docImgDataURL=ev.target.result;
+      const img=document.getElementById('doc-preview-img');
+      img.src=docImgDataURL; img.style.display='block';
+      document.getElementById('doc-place-img').src=docImgDataURL;
+      document.getElementById('doc-place-img').style.display='block';
+      document.getElementById('doc-place-pdfcanvas').style.display='none';
       afterFileLoaded();
     };
     reader.readAsDataURL(file);
   } else {
-    document.getElementById('loading-bar').style.display = 'block';
-    reader.onload = ev => renderPDF(new Uint8Array(ev.target.result));
+    document.getElementById('loading-bar').style.display='block';
+    reader.onload=ev=>renderPDF(new Uint8Array(ev.target.result));
     reader.readAsArrayBuffer(file);
   }
 }
 
-async function renderPDF(typedArray) {
-  try {
-    const pdf = await pdfjsLib.getDocument({ data: typedArray }).promise;
-    const total = pdf.numPages;
-    const wrap  = document.getElementById('pdf-pages-wrap');
-    wrap.innerHTML = ''; pdfFirstPageURL = null;
+async function renderPDF(typedArray){
+  try{
+    const pdf=await pdfjsLib.getDocument({data:typedArray}).promise;
+    totalPdfPages=pdf.numPages;
+    const previewWrap=document.getElementById('pdf-pages-wrap');
+    previewWrap.innerHTML=''; pdfPages=[];
 
-    for (let pn = 1; pn <= Math.min(total, 3); pn++) {
-      const page     = await pdf.getPage(pn);
-      const viewport = page.getViewport({ scale: 1.5 });
-      const c = document.createElement('canvas');
-      c.width = viewport.width; c.height = viewport.height;
-      await page.render({ canvasContext: c.getContext('2d'), viewport }).promise;
+    for(let pn=1;pn<=totalPdfPages;pn++){
+      const page=await pdf.getPage(pn);
+      const viewport=page.getViewport({scale:1.5});
+      const c=document.createElement('canvas');
+      c.width=viewport.width; c.height=viewport.height;
+      await page.render({canvasContext:c.getContext('2d'),viewport}).promise;
+      const dataURL=c.toDataURL('image/png');
+      pdfPages.push({canvas:c, dataURL});
 
-      if (pn === 1) {
-        pdfFirstPageURL = c.toDataURL('image/png');
-        const pc = document.getElementById('doc-place-pdfcanvas');
-        pc.width = c.width; pc.height = c.height;
-        pc.getContext('2d').drawImage(c, 0, 0);
-        pc.style.display = 'block';
-        document.getElementById('doc-place-img').style.display = 'none';
-      }
-      if (total > 1) {
-        const lbl = document.createElement('div');
-        lbl.className = 'pdf-page-label';
-        lbl.textContent = `第 ${pn} 頁 / 共 ${total} 頁`;
-        wrap.appendChild(lbl);
-      }
-      wrap.appendChild(c);
+      // 預覽區塊
+      const item=document.createElement('div');
+      item.className='pdf-page-item';
+      const lbl=document.createElement('div');
+      lbl.className='pdf-page-label';
+      lbl.textContent=`第 ${pn} 頁 / 共 ${totalPdfPages} 頁`;
+      const previewC=document.createElement('canvas');
+      previewC.width=c.width; previewC.height=c.height;
+      previewC.getContext('2d').drawImage(c,0,0);
+      item.appendChild(lbl); item.appendChild(previewC);
+      previewWrap.appendChild(item);
     }
-    if (total > 3) {
-      const m = document.createElement('div');
-      m.className = 'pdf-page-label';
-      m.textContent = `（僅預覽前 3 頁，共 ${total} 頁）`;
-      wrap.appendChild(m);
-    }
-    document.getElementById('loading-bar').style.display    = 'none';
-    document.getElementById('pdf-pages-wrap').style.display = 'flex';
+    document.getElementById('loading-bar').style.display='none';
+    document.getElementById('pdf-pages-wrap').style.display='flex';
     afterFileLoaded();
-  } catch(err) {
-    document.getElementById('loading-bar').innerHTML =
-      '⚠ PDF 載入失敗，請確認檔案未加密<br><small style="color:var(--gold)">仍可繼續下方簽名步驟</small>';
+  } catch(err){
+    document.getElementById('loading-bar').innerHTML='⚠ PDF 載入失敗，請確認檔案未加密';
     afterFileLoaded();
   }
 }
 
-function afterFileLoaded() {
+function afterFileLoaded(){
   setStep(2);
   showToast('✓ 文件已載入，請在下方簽名');
-  setTimeout(() => document.getElementById('card-sign').scrollIntoView({ behavior:'smooth', block:'start' }), 300);
+  setTimeout(()=>document.getElementById('card-sign').scrollIntoView({behavior:'smooth',block:'start'}),300);
 }
 
-function removeFile() {
-  docFile = null; isPDF = false; docImgDataURL = null; pdfFirstPageURL = null;
-  document.getElementById('upload-zone').style.display    = 'flex';
-  document.getElementById('file-chip-row').style.display  = 'none';
-  document.getElementById('doc-preview-box').style.display = 'none';
-  document.getElementById('file-input').value = '';
+function removeFile(){
+  docFile=null; isPDF=false; docImgDataURL=null; pdfPages=[]; pageStickers={};
+  document.getElementById('upload-zone').style.display='flex';
+  document.getElementById('file-chip-row').style.display='none';
+  document.getElementById('doc-preview-box').style.display='none';
+  document.getElementById('file-input').value='';
   setStep(1);
 }
 
-/* ══ 套用簽名（裁切空白）══ */
-function applySig() {
-  // 先用 getImageData 直接讀取，不需要 toDataURL 中間轉換
-  const rawData = ctx.getImageData(0, 0, canvasW, canvasH);
-  let x0=canvasW, y0=canvasH, x1=0, y1=0;
-  for (let i=0; i<rawData.data.length; i+=4) {
-    if (rawData.data[i+3] > 10) {
+/* ══ 套用簽名 ══ */
+function applySig(){
+  const rawData=ctx.getImageData(0,0,canvasW,canvasH);
+  let x0=canvasW,y0=canvasH,x1=0,y1=0;
+  for(let i=0;i<rawData.data.length;i+=4){
+    if(rawData.data[i+3]>10){
       const px=(i/4)%canvasW, py=Math.floor((i/4)/canvasW);
-      if(px<x0)x0=px; if(px>x1)x1=px; if(py<y0)y0=py; if(py>y1)y1=py;
+      if(px<x0)x0=px;if(px>x1)x1=px;if(py<y0)y0=py;if(py>y1)y1=py;
     }
   }
   const pad=12;
-  x0=Math.max(0,x0-pad); y0=Math.max(0,y0-pad);
-  x1=Math.min(canvasW,x1+pad); y1=Math.min(canvasH,y1+pad);
+  x0=Math.max(0,x0-pad);y0=Math.max(0,y0-pad);
+  x1=Math.min(canvasW,x1+pad);y1=Math.min(canvasH,y1+pad);
   const w=x1-x0||canvasW, h=y1-y0||canvasH;
-
-  const crop = document.createElement('canvas');
+  const crop=document.createElement('canvas');
   crop.width=w; crop.height=h;
-  crop.getContext('2d').putImageData(rawData, -x0, -y0);
-  sigDataURL = crop.toDataURL('image/png');
+  crop.getContext('2d').putImageData(rawData,-x0,-y0);
+  sigDataURL=crop.toDataURL('image/png');
 
-  document.getElementById('sig-thumb').src = sigDataURL;
-  document.getElementById('sig-saved-row').style.display = 'flex';
+  document.getElementById('sig-thumb').src=sigDataURL;
+  document.getElementById('sig-saved-row').style.display='flex';
 
-  if (!docFile) { showToast('⚠ 請先上傳文件'); return; }
-  document.getElementById('card-place').style.display = 'block';
-  addSticker();
-  setStep(3);
-  setTimeout(() => document.getElementById('card-place').scrollIntoView({ behavior:'smooth', block:'start' }), 200);
+  if(!docFile){showToast('⚠ 請先上傳文件');return;}
+  setupPlacePage();
 }
 
-function reSign() {
+function reSign(){
   clearSig();
-  document.getElementById('sig-saved-row').style.display = 'none';
-  document.getElementById('card-place').style.display    = 'none';
-  document.getElementById('card-export').style.display   = 'none';
+  document.getElementById('sig-saved-row').style.display='none';
+  document.getElementById('card-place').style.display='none';
+  document.getElementById('card-export').style.display='none';
   setStep(2);
 }
 
-/* ══ 簽名貼圖 ══ */
-function addSticker() {
-  const wrap = document.getElementById('doc-place-wrap');
-  wrap.querySelectorAll('.sig-sticker').forEach(el => el.remove());
-  const s = document.createElement('div');
-  s.className = 'sig-sticker';
-  s.style.cssText = 'left:20px;top:20px;width:130px;height:65px;';
-  s.innerHTML = `<div class="sticker-border"></div>
-    <img src="${sigDataURL}" draggable="false">
+/* ══ 放置頁面設定 ══ */
+function setupPlacePage(){
+  document.getElementById('card-place').style.display='block';
+  currentPageIdx=0;
+
+  if(isPDF && pdfPages.length>0){
+    // 顯示多頁選頁器
+    document.getElementById('pdf-page-selector').style.display='flex';
+    buildPageTabs();
+    document.getElementById('prev-page-btn').disabled=false;
+    document.getElementById('next-page-btn').disabled=false;
+    loadPlacePage(0);
+  } else {
+    document.getElementById('pdf-page-selector').style.display='none';
+    document.getElementById('doc-place-img').style.display='block';
+    document.getElementById('doc-place-pdfcanvas').style.display='none';
+    document.getElementById('prev-page-btn').disabled=true;
+    document.getElementById('next-page-btn').disabled=true;
+    initStickersForPage('img');
+  }
+
+  setStep(3);
+  setTimeout(()=>document.getElementById('card-place').scrollIntoView({behavior:'smooth',block:'start'}),200);
+}
+
+function buildPageTabs(){
+  const wrap=document.getElementById('page-tabs');
+  wrap.innerHTML='';
+  for(let i=0;i<pdfPages.length;i++){
+    const btn=document.createElement('button');
+    btn.className='page-tab'+(i===0?' active':'');
+    btn.id=`ptab-${i}`;
+    btn.textContent=`第${i+1}頁`;
+    btn.onclick=()=>switchToPage(i);
+    wrap.appendChild(btn);
+  }
+  updatePageNavInfo();
+}
+
+function updatePageNavInfo(){
+  const signed=Object.keys(pageStickers).filter(k=>pageStickers[k]&&pageStickers[k].length>0).length;
+  document.getElementById('page-nav-info').textContent=
+    `第 ${currentPageIdx+1} 頁 / 共 ${pdfPages.length} 頁　已簽：${signed} 頁`;
+}
+
+function switchPage(dir){
+  saveCurrentStickers();
+  const next=currentPageIdx+dir;
+  if(next<0||next>=pdfPages.length)return;
+  switchToPage(next);
+}
+
+function switchToPage(idx){
+  saveCurrentStickers();
+  currentPageIdx=idx;
+  loadPlacePage(idx);
+  document.querySelectorAll('.page-tab').forEach((b,i)=>{
+    b.className='page-tab'+(i===idx?' active':'');
+    if(pageStickers[i]&&pageStickers[i].length>0) b.classList.add('signed');
+  });
+  updatePageNavInfo();
+}
+
+function loadPlacePage(idx){
+  const pc=document.getElementById('doc-place-pdfcanvas');
+  const src=pdfPages[idx];
+  pc.width=src.canvas.width; pc.height=src.canvas.height;
+  pc.getContext('2d').drawImage(src.canvas,0,0);
+  pc.style.display='block';
+  document.getElementById('doc-place-img').style.display='none';
+  // 清除貼圖，重新載入此頁已有的貼圖
+  const wrap=document.getElementById('doc-place-wrap');
+  wrap.querySelectorAll('.sig-sticker').forEach(el=>el.remove());
+  if(pageStickers[idx]){
+    pageStickers[idx].forEach(info=>restoreSticker(info,wrap));
+  } else {
+    // 新頁面自動放入簽名和日期
+    initStickersForPage(idx);
+  }
+}
+
+function initStickersForPage(pageKey){
+  const wrap=document.getElementById('doc-place-wrap');
+  wrap.querySelectorAll('.sig-sticker').forEach(el=>el.remove());
+  // 簽名貼圖
+  addSticker(sigDataURL, 20, 20, 130, 65, false, wrap);
+  // 日期戳記
+  if(dateEnabled){
+    const dateImg=makeDateCanvas(getTodayStr(dateFmt));
+    addSticker(dateImg, 20, 95, 160, 36, true, wrap);
+  }
+}
+
+/* ══ 儲存/還原貼圖位置 ══ */
+function saveCurrentStickers(){
+  const wrap=document.getElementById('doc-place-wrap');
+  const stickers=wrap.querySelectorAll('.sig-sticker');
+  const key=isPDF?currentPageIdx:'img';
+  pageStickers[key]=[];
+  stickers.forEach(st=>{
+    pageStickers[key].push({
+      src:  st.querySelector('img').src,
+      left: parseFloat(st.style.left)||0,
+      top:  parseFloat(st.style.top)||0,
+      w:    st.offsetWidth,
+      h:    st.offsetHeight,
+      isDate: st.dataset.isdate==='1'
+    });
+  });
+}
+
+function restoreSticker(info, wrap){
+  addSticker(info.src, info.left, info.top, info.w, info.h, info.isDate, wrap);
+}
+
+function addSticker(src, left, top, w, h, isDate, wrap){
+  if(!wrap) wrap=document.getElementById('doc-place-wrap');
+  const s=document.createElement('div');
+  s.className='sig-sticker';
+  s.dataset.isdate=isDate?'1':'0';
+  s.style.cssText=`left:${left}px;top:${top}px;width:${w}px;height:${h}px;`;
+  s.innerHTML=`
+    <div class="sticker-border${isDate?' date-type':''}"></div>
+    <img src="${src}" draggable="false">
     <div class="del-btn">✕</div>
     <div class="resize-btn">⤡</div>`;
-  s.querySelector('.del-btn').addEventListener('click', e => { e.stopPropagation(); s.remove(); });
-  makeDraggable(s, wrap);
-  makeResizable(s.querySelector('.resize-btn'), s, wrap);
+  s.querySelector('.del-btn').addEventListener('click',e=>{e.stopPropagation();s.remove();});
+  makeDraggable(s,wrap);
+  makeResizable(s.querySelector('.resize-btn'),s,wrap);
   wrap.appendChild(s);
 }
 
-function makeDraggable(el, container) {
+/* ══ 拖曳 & 縮放 ══ */
+function makeDraggable(el,container){
   let sx,sy,ex,ey;
-  function down(e) {
+  function down(e){
     if(e.target.classList.contains('del-btn')||e.target.classList.contains('resize-btn'))return;
     e.preventDefault();
     const src=e.touches?e.touches[0]:e;
@@ -561,7 +708,7 @@ function makeDraggable(el, container) {
     docAdd('mousemove',move);docAdd('mouseup',up);
     docAdd('touchmove',move,{passive:false});docAdd('touchend',up);
   }
-  function move(e) {
+  function move(e){
     e.preventDefault();
     const src=e.touches?e.touches[0]:e;
     const cr=container.getBoundingClientRect();
@@ -574,104 +721,127 @@ function makeDraggable(el, container) {
   el.addEventListener('mousedown',down);
   el.addEventListener('touchstart',down,{passive:false});
 }
-
-function makeResizable(handle,el,container) {
+function makeResizable(handle,el,container){
   let sx,sy,sw,sh;
-  function down(e) {
+  function down(e){
     e.stopPropagation();e.preventDefault();
     const src=e.touches?e.touches[0]:e;
     sx=src.clientX;sy=src.clientY;sw=el.offsetWidth;sh=el.offsetHeight;
     docAdd('mousemove',move);docAdd('mouseup',up);
     docAdd('touchmove',move,{passive:false});docAdd('touchend',up);
   }
-  function move(e) {
+  function move(e){
     e.preventDefault();
     const src=e.touches?e.touches[0]:e;
-    el.style.width=Math.max(50,sw+(src.clientX-sx))+'px';
-    el.style.height=Math.max(25,sh+(src.clientY-sy))+'px';
+    el.style.width=Math.max(40,sw+(src.clientX-sx))+'px';
+    el.style.height=Math.max(20,sh+(src.clientY-sy))+'px';
   }
   function up(){docRm('mousemove',move);docRm('mouseup',up);docRm('touchmove',move);docRm('touchend',up);}
   handle.addEventListener('mousedown',down);
   handle.addEventListener('touchstart',down,{passive:false});
 }
-
 function docAdd(ev,fn,opt){document.addEventListener(ev,fn,opt);}
 function docRm(ev,fn){document.removeEventListener(ev,fn);}
 
-/* ══ 合併並顯示圖片 ══ */
-function goExport() {
-  document.getElementById('card-export').style.display = 'block';
+/* ══ 合併輸出 ══ */
+function goExport(){
+  saveCurrentStickers();
+  document.getElementById('card-export').style.display='block';
   setStep(4);
-  setTimeout(() => document.getElementById('card-export').scrollIntoView({ behavior:'smooth', block:'start' }), 200);
-  setTimeout(mergeAndShow, 600);
+  setTimeout(()=>document.getElementById('card-export').scrollIntoView({behavior:'smooth',block:'start'}),200);
+  setTimeout(mergeAll,600);
 }
 
-function mergeAndShow() {
-  const wrap     = document.getElementById('doc-place-wrap');
-  const stickers = wrap.querySelectorAll('.sig-sticker');
-  const mc       = document.getElementById('merge-canvas');
+async function mergeAll(){
+  const resultWrap=document.getElementById('result-pages-wrap');
+  resultWrap.innerHTML='';
 
-  // ── 關鍵修正：使用 wrap 的實際顯示尺寸，不放大 scale ──
-  // 放大 scale 在 LINE 的 canvas 會超出記憶體限制導致失敗
-  const W = wrap.offsetWidth;
-  const H = wrap.offsetHeight || 400;
-  mc.width  = W;
-  mc.height = H;
-  const mctx = mc.getContext('2d');
+  const wrap=document.getElementById('doc-place-wrap');
+  const W=wrap.offsetWidth, H=wrap.offsetHeight||400;
 
-  const bgSrc = isPDF ? pdfFirstPageURL : docImgDataURL;
-
-  function drawStickers() {
-    let done = 0;
-    if (!stickers.length) { finalize(); return; }
-    stickers.forEach(st => {
-      const si = new Image();
-      si.onload = () => {
-        mctx.drawImage(si,
-          parseFloat(st.style.left)||0,
-          parseFloat(st.style.top)||0,
-          st.offsetWidth, st.offsetHeight);
-        if(++done === stickers.length) finalize();
-      };
-      si.onerror = () => { if(++done === stickers.length) finalize(); };
-      si.src = st.querySelector('img').src;
-    });
-  }
-
-  function finalize() {
-    try {
-      // 分段嘗試：先用 image/jpeg 壓縮（檔案小，LINE 較不容易阻擋）
-      let dataURL = '';
-      try { dataURL = mc.toDataURL('image/jpeg', 0.92); } catch(e) {}
-      if (!dataURL || dataURL === 'data:,') {
-        try { dataURL = mc.toDataURL('image/png'); } catch(e) {}
-      }
-      if (!dataURL || dataURL === 'data:,') {
-        document.getElementById('export-info-text').innerHTML =
-          '⚠ 此瀏覽器無法輸出圖片<br>請改用手機的 Safari（iOS）或 Chrome（Android）開啟此頁面';
-        return;
-      }
-      document.getElementById('result-img').src = dataURL;
-      document.getElementById('result-img-wrap').style.display = 'flex';
-      document.getElementById('export-info-text').style.display = 'none';
-    } catch(err) {
-      document.getElementById('export-info-text').innerHTML =
-        '⚠ 合併失敗，建議改用 Safari 或 Chrome 開啟';
+  if(!isPDF){
+    // 單圖模式
+    const dataURL=await mergePage(docImgDataURL,pageStickers['img']||[],W,H);
+    appendResultPage(resultWrap,dataURL,null);
+  } else {
+    // PDF 多頁模式：只輸出有貼圖的頁面
+    const signedPages=Object.keys(pageStickers).filter(k=>pageStickers[k]&&pageStickers[k].length>0);
+    if(signedPages.length===0){
+      document.getElementById('export-info-text').textContent='⚠ 尚未在任何頁面放置簽名';
+      return;
+    }
+    for(const k of signedPages){
+      const pageIdx=parseInt(k);
+      const bgURL=pdfPages[pageIdx].dataURL;
+      const dataURL=await mergePage(bgURL,pageStickers[k],W,H);
+      appendResultPage(resultWrap,dataURL,`第 ${pageIdx+1} 頁`);
     }
   }
 
-  if (bgSrc) {
-    const bg = new Image();
-    bg.onload = () => { mctx.drawImage(bg, 0, 0, W, H); drawStickers(); };
-    bg.onerror= () => { mctx.fillStyle='#fff'; mctx.fillRect(0,0,W,H); drawStickers(); };
-    bg.src = bgSrc;
-  } else {
-    mctx.fillStyle = '#fff'; mctx.fillRect(0,0,W,H); drawStickers();
+  document.getElementById('export-info-text').style.display='none';
+  resultWrap.style.display='flex';
+}
+
+function mergePage(bgURL, stickers, W, H){
+  return new Promise(resolve=>{
+    const mc=document.getElementById('merge-canvas');
+    mc.width=W; mc.height=H;
+    const mctx=mc.getContext('2d');
+
+    function drawStickers(){
+      let done=0;
+      if(!stickers.length){finalize();return;}
+      stickers.forEach(st=>{
+        const si=new Image();
+        si.onload=()=>{
+          mctx.drawImage(si,st.left,st.top,st.w,st.h);
+          if(++done===stickers.length)finalize();
+        };
+        si.onerror=()=>{if(++done===stickers.length)finalize();};
+        si.src=st.src;
+      });
+    }
+    function finalize(){
+      let dataURL='';
+      try{dataURL=mc.toDataURL('image/jpeg',0.92);}catch(e){}
+      if(!dataURL||dataURL==='data:,'){try{dataURL=mc.toDataURL('image/png');}catch(e){}}
+      resolve(dataURL||'');
+    }
+
+    if(bgURL){
+      const bg=new Image();
+      bg.onload=()=>{mctx.drawImage(bg,0,0,W,H);drawStickers();};
+      bg.onerror=()=>{mctx.fillStyle='#fff';mctx.fillRect(0,0,W,H);drawStickers();};
+      bg.src=bgURL;
+    } else {
+      mctx.fillStyle='#fff';mctx.fillRect(0,0,W,H);drawStickers();
+    }
+  });
+}
+
+function appendResultPage(wrap, dataURL, label){
+  const block=document.createElement('div');
+  block.className='result-page-block';
+  if(label){
+    const lbl=document.createElement('div');
+    lbl.className='result-page-title';
+    lbl.textContent=`📄 ${label}`;
+    block.appendChild(lbl);
   }
+  const hint=document.createElement('div');
+  hint.className='save-hint';
+  hint.innerHTML='👇 <strong>長按圖片</strong> → 選「<strong>儲存圖片</strong>」存到相簿';
+  block.appendChild(hint);
+  const img=document.createElement('img');
+  img.className='result-page-img';
+  img.src=dataURL;
+  img.alt='簽名文件';
+  block.appendChild(img);
+  wrap.appendChild(block);
 }
 
 /* ══ 工具 ══ */
-function setStep(n) {
+function setStep(n){
   for(let i=1;i<=4;i++){
     const el=document.getElementById('s'+i);
     if(i<n){el.className='step-circle done';el.textContent='✓';}
@@ -679,7 +849,7 @@ function setStep(n) {
     else{el.className='step-circle idle';el.textContent=i;}
   }
 }
-function showToast(msg) {
+function showToast(msg){
   const t=document.getElementById('toast');
   t.textContent=msg;t.classList.add('show');
   setTimeout(()=>t.classList.remove('show'),2500);

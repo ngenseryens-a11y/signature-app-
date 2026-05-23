@@ -184,10 +184,14 @@ input:checked+.toggle-slider:before{transform:translateX(20px);}
     <div class="fremove" onclick="removeFile()">✕</div>
   </div>
   <div id="doc-preview-box">
-    <div class="preview-label">▸ 文件預覽</div>
+    <div class="preview-label">▸ 文件預覽（確認無誤後，點下方按鈕簽名）</div>
     <img id="doc-preview-img" src="" alt="文件預覽">
     <div id="loading-bar"><span class="spinner"></span>PDF 載入中，請稍候…</div>
     <div id="pdf-pages-wrap"></div>
+    <button id="go-sign-btn" style="display:none;width:100%;padding:12px;margin-top:8px;background:var(--accent);border:none;color:white;font-size:13px;letter-spacing:2px;cursor:pointer;font-family:'Noto Sans TC',sans-serif;font-weight:500;"
+      onclick="document.getElementById('card-sign').scrollIntoView({behavior:'smooth',block:'start'})">
+      ▼ 確認預覽，前往手寫簽名
+    </button>
   </div>
 </div>
 
@@ -486,13 +490,26 @@ async function renderPDF(typedArray){
     const previewWrap=document.getElementById('pdf-pages-wrap');
     previewWrap.innerHTML=''; pdfPages=[];
 
-    for(let pn=1;pn<=totalPdfPages;pn++){
+    // 限制最大頁數，避免記憶體問題
+    const MAX_PAGES = 20;
+    const renderPages = Math.min(totalPdfPages, MAX_PAGES);
+
+    for(let pn=1;pn<=renderPages;pn++){
       const page=await pdf.getPage(pn);
-      const viewport=page.getViewport({scale:1.5});
+
+      // 自適應 scale：根據頁面寬度動態調整，避免太大爆記憶體
+      const baseViewport = page.getViewport({scale:1});
+      const targetW = 1200; // 目標寬度像素
+      const scale = Math.min(2, Math.max(1, targetW / baseViewport.width));
+      const viewport = page.getViewport({scale});
+
       const c=document.createElement('canvas');
       c.width=viewport.width; c.height=viewport.height;
       await page.render({canvasContext:c.getContext('2d'),viewport}).promise;
-      const dataURL=c.toDataURL('image/png');
+
+      let dataURL='';
+      try { dataURL = c.toDataURL('image/jpeg', 0.85); }
+      catch(e){ try { dataURL = c.toDataURL('image/png'); } catch(e2){} }
       pdfPages.push({canvas:c, dataURL});
 
       // 預覽區塊
@@ -507,19 +524,30 @@ async function renderPDF(typedArray){
       item.appendChild(lbl); item.appendChild(previewC);
       previewWrap.appendChild(item);
     }
+
+    if(totalPdfPages > MAX_PAGES){
+      const note=document.createElement('div');
+      note.className='pdf-page-label';
+      note.style.color='var(--accent)';
+      note.textContent=`⚠ 僅處理前 ${MAX_PAGES} 頁，共 ${totalPdfPages} 頁`;
+      previewWrap.appendChild(note);
+    }
+
     document.getElementById('loading-bar').style.display='none';
     document.getElementById('pdf-pages-wrap').style.display='flex';
     afterFileLoaded();
   } catch(err){
-    document.getElementById('loading-bar').innerHTML='⚠ PDF 載入失敗，請確認檔案未加密';
-    afterFileLoaded();
+    console.error('PDF載入錯誤', err);
+    document.getElementById('loading-bar').innerHTML='⚠ PDF 載入失敗，請確認檔案未加密或檔案不要太大';
   }
 }
 
 function afterFileLoaded(){
   setStep(2);
-  showToast('✓ 文件已載入，請在下方簽名');
-  setTimeout(()=>document.getElementById('card-sign').scrollIntoView({behavior:'smooth',block:'start'}),300);
+  showToast('✓ 文件已載入，請確認預覽後往下簽名');
+  document.getElementById('go-sign-btn').style.display='block';
+  // 捲動到預覽區，讓使用者先確認文件內容
+  setTimeout(()=>document.getElementById('doc-preview-box').scrollIntoView({behavior:'smooth',block:'start'}),300);
 }
 
 function removeFile(){
@@ -570,20 +598,35 @@ function setupPlacePage(){
   document.getElementById('card-place').style.display='block';
   currentPageIdx=0;
 
+  // 先把 doc-place-img 的 alt 文字清掉，避免顯示「文件」字樣
+  const placeImg = document.getElementById('doc-place-img');
+  placeImg.alt = '';
+
   if(isPDF && pdfPages.length>0){
-    // 顯示多頁選頁器
+    // PDF 模式
     document.getElementById('pdf-page-selector').style.display='flex';
     buildPageTabs();
-    document.getElementById('prev-page-btn').disabled=false;
-    document.getElementById('next-page-btn').disabled=false;
+    document.getElementById('prev-page-btn').disabled = (pdfPages.length<=1);
+    document.getElementById('next-page-btn').disabled = (pdfPages.length<=1);
+    // 隱藏圖片，顯示 PDF canvas
+    placeImg.style.display='none';
+    placeImg.src='';
+    document.getElementById('doc-place-pdfcanvas').style.display='block';
     loadPlacePage(0);
   } else {
+    // 圖片模式
     document.getElementById('pdf-page-selector').style.display='none';
-    document.getElementById('doc-place-img').style.display='block';
     document.getElementById('doc-place-pdfcanvas').style.display='none';
+    placeImg.style.display='block';
+    if(docImgDataURL) placeImg.src=docImgDataURL;
     document.getElementById('prev-page-btn').disabled=true;
     document.getElementById('next-page-btn').disabled=true;
-    initStickersForPage('img');
+    // 等圖片載入完畢再放貼圖（確保有正確尺寸）
+    if(placeImg.complete){
+      initStickersForPage('img');
+    } else {
+      placeImg.onload = () => initStickersForPage('img');
+    }
   }
 
   setStep(3);
@@ -629,20 +672,31 @@ function switchToPage(idx){
 }
 
 function loadPlacePage(idx){
-  const pc=document.getElementById('doc-place-pdfcanvas');
-  const src=pdfPages[idx];
-  pc.width=src.canvas.width; pc.height=src.canvas.height;
-  pc.getContext('2d').drawImage(src.canvas,0,0);
-  pc.style.display='block';
-  document.getElementById('doc-place-img').style.display='none';
-  // 清除貼圖，重新載入此頁已有的貼圖
-  const wrap=document.getElementById('doc-place-wrap');
-  wrap.querySelectorAll('.sig-sticker').forEach(el=>el.remove());
-  if(pageStickers[idx]){
-    pageStickers[idx].forEach(info=>restoreSticker(info,wrap));
-  } else {
-    // 新頁面自動放入簽名和日期
-    initStickersForPage(idx);
+  try {
+    const pc=document.getElementById('doc-place-pdfcanvas');
+    const src=pdfPages[idx];
+    if(!src || !src.canvas){
+      console.warn('PDF頁面資料不存在', idx);
+      return;
+    }
+    pc.width=src.canvas.width; pc.height=src.canvas.height;
+    pc.getContext('2d').drawImage(src.canvas,0,0);
+    pc.style.display='block';
+    document.getElementById('doc-place-img').style.display='none';
+    // 清除貼圖
+    const wrap=document.getElementById('doc-place-wrap');
+    wrap.querySelectorAll('.sig-sticker').forEach(el=>el.remove());
+    // 等下一個畫面循環，確保 canvas 已完成顯示尺寸計算
+    setTimeout(()=>{
+      if(pageStickers[idx] && pageStickers[idx].length>0){
+        pageStickers[idx].forEach(info=>restoreSticker(info,wrap));
+      } else {
+        initStickersForPage(idx);
+      }
+    },100);
+  } catch(err){
+    console.error('載入頁面失敗', err);
+    showToast('⚠ 頁面載入失敗，請重新整理');
   }
 }
 

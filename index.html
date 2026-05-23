@@ -66,7 +66,16 @@ main{width:100%;max-width:480px;padding:16px 16px 40px;display:flex;flex-directi
 .color-dot.active{border-color:var(--gold);transform:scale(1.25);}
 .size-btn{background:none;border:1px solid var(--line);padding:4px 10px;font-size:11px;cursor:pointer;color:var(--muted);border-radius:2px;font-family:'Noto Sans TC',sans-serif;}
 .size-btn.active{background:var(--ink);color:var(--gold);border-color:var(--ink);}
-#sig-canvas{background:white;border:1px solid var(--line);border-radius:2px;display:block;width:100%;height:160px;touch-action:none;cursor:crosshair;}
+#sig-canvas{
+  background:white;border:1px solid var(--line);border-radius:2px;display:block;
+  width:100%;height:160px;
+  touch-action:none;        /* 阻止瀏覽器預設觸控行為（滾動、縮放）*/
+  cursor:crosshair;
+  -webkit-user-select:none; /* iOS：阻止文字選取 */
+  user-select:none;
+  -webkit-touch-callout:none; /* iOS：阻止長按選單 */
+  -webkit-tap-highlight-color:transparent; /* iOS：阻止點擊高亮 */
+}
 .sig-hint{font-size:11px;color:var(--muted);text-align:center;}
 .sig-actions{display:flex;gap:6px;}
 .btn-undo{padding:11px 14px;background:none;border:1px solid var(--line);font-size:18px;cursor:pointer;color:var(--muted);flex-shrink:0;}
@@ -455,24 +464,59 @@ function endDraw(){
   document.getElementById('apply-btn').disabled=false;
 }
 
-/* ── 事件監聽器：優先使用 Pointer Events（支援手寫板壓力感應）── */
-if(window.PointerEvent){
-  // Pointer Events（手寫板 + 滑鼠 + 觸控，統一處理）
-  canvas.addEventListener('pointerdown', startDraw);
-  canvas.addEventListener('pointermove', doDraw);
-  canvas.addEventListener('pointerup',   endDraw);
-  canvas.addEventListener('pointerleave',endDraw);
+/* ── 事件監聽器 ──
+   判斷規則：
+   ① 手機（iOS / Android）→ 強制 Touch Events，Pointer Events 完全不啟用
+   ② 桌面 PC（含手寫板）  → Pointer Events（支援壓力感應）+ 滑鼠備援
+   ③ 無法判斷             → 安全回退至 Touch + Mouse Events
+── */
+
+/* 手機判斷：只要是行動裝置就判定為手機，不管有沒有 PointerEvent */
+const _ua = navigator.userAgent || '';
+const _isIOS     = /iPad|iPhone|iPod/i.test(_ua) && !window.MSStream;
+const _isAndroid = /Android/i.test(_ua);
+const _isMobile  = _isIOS || _isAndroid ||
+                   /Mobile|Tablet|Touch/i.test(_ua) ||
+                   (navigator.maxTouchPoints > 1 && /Macintosh/i.test(_ua)); // iPad偽裝Mac
+
+/* 是否為桌面且有 Pointer Events（手寫板壓力感應條件）*/
+const _usePointer = !_isMobile && window.PointerEvent;
+
+if(_usePointer){
+  /* ══ 桌面 PC + 手寫板：Pointer Events（有壓力感應）══ */
+  canvas.addEventListener('pointerdown',  startDraw);
+  canvas.addEventListener('pointermove',  doDraw);
+  canvas.addEventListener('pointerup',    endDraw);
+  canvas.addEventListener('pointerleave', endDraw);
   canvas.addEventListener('pointercancel',endDraw);
+  /* 桌面觸控螢幕（Surface 等）：阻止 touch 重複觸發 */
+  canvas.addEventListener('touchstart', e=>e.preventDefault(), {passive:false});
+
 } else {
-  // 備援：舊版瀏覽器使用 Mouse + Touch Events
-  canvas.addEventListener('mousedown', startDraw);
-  canvas.addEventListener('mousemove', doDraw);
-  canvas.addEventListener('mouseup',   endDraw);
-  canvas.addEventListener('mouseleave',endDraw);
-  canvas.addEventListener('touchstart',startDraw,{passive:false});
-  canvas.addEventListener('touchmove', doDraw,   {passive:false});
-  canvas.addEventListener('touchend',  endDraw);
+  /* ══ 手機（iOS / Android）：Touch Events（完全不用 Pointer Events）══ */
+  canvas.addEventListener('touchstart', startDraw, {passive:false});
+  canvas.addEventListener('touchmove',  doDraw,    {passive:false});
+  canvas.addEventListener('touchend',   endDraw);
+  canvas.addEventListener('touchcancel',endDraw);
+  /* 滑鼠備援（避免部分 Android 平板用滑鼠時無反應）*/
+  canvas.addEventListener('mousedown',  startDraw);
+  canvas.addEventListener('mousemove',  doDraw);
+  canvas.addEventListener('mouseup',    endDraw);
+  canvas.addEventListener('mouseleave', endDraw);
 }
+
+/* ── iOS / Android 系統手勢全面封鎖（CSS + JS 雙層）── */
+canvas.style.webkitUserSelect       = 'none';
+canvas.style.userSelect             = 'none';
+canvas.style.webkitTouchCallout     = 'none';   // 阻止 iOS 長按選單
+canvas.style.webkitTapHighlightColor= 'transparent'; // 阻止點擊高亮
+canvas.setAttribute('autocomplete', 'off');
+canvas.setAttribute('autocorrect',  'off');
+canvas.setAttribute('autocapitalize','off');
+canvas.setAttribute('spellcheck',   'false');
+
+/* 顯示目前模式（方便除錯，正式使用時不影響功能）*/
+console.log('EZSign 輸入模式：' + (_usePointer ? 'Pointer Events（桌面/手寫板）' : 'Touch Events（手機）'));
 
 function undoStroke(){
   if(!strokeSnapshots.length)return;

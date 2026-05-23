@@ -329,129 +329,150 @@ function getXY(e,el){
 
 /* ════════════════════════════════════
    高品質書寫演算法
-   - Quadratic Bezier 中點平滑（每兩個點之間用控制點做平滑曲線）
-   - 速度感應筆寬（寫慢→粗、寫快→細，模擬真實筆觸）
+   - Quadratic Bezier 中點平滑
+   - 速度感應筆寬（寫慢→粗、寫快→細）
+   - Pointer Events API 壓力感應（支援手寫板）
    - 端點圓潤化
 ════════════════════════════════════ */
 let lastWidth = 0;
-const VELOCITY_FILTER = 0.7;   // 速度平滑係數
-const MIN_WIDTH_RATIO = 0.5;   // 最細寬度比例（相對於設定粗細）
-const MAX_WIDTH_RATIO = 1.6;   // 最粗寬度比例
+const VELOCITY_FILTER = 0.7;
+const MIN_WIDTH_RATIO = 0.4;
+const MAX_WIDTH_RATIO = 1.8;
+let lastPressure = 0.5;  // 壓力值（0~1），無感壓設備預設 0.5
+
+/* ── 從事件取得壓力值 ── */
+function getPressure(e){
+  // Pointer Events（手寫板）：直接取壓力值
+  if(e.pointerType === 'pen' && typeof e.pressure === 'number' && e.pressure > 0){
+    return e.pressure;
+  }
+  // Touch Events（手機手指）：無壓力資訊，回傳預設值
+  if(e.touches) return 0.5;
+  // Mouse / 無壓力手寫板：回傳預設值
+  return 0.5;
+}
 
 function startDraw(e){
   e.preventDefault(); isDrawing=true;
   const p=getXY(e,canvas);
+  lastPressure = getPressure(e);
   points=[p];
   lastX=p.x; lastY=p.y;
   lastWidth = penSize * MIN_WIDTH_RATIO;
-  // 起筆畫一個小圓點，讓起筆有自然圓頭
   ctx.fillStyle=penColor;
   ctx.beginPath();
-  ctx.arc(p.x, p.y, penSize*0.4, 0, Math.PI*2);
+  ctx.arc(p.x, p.y, penSize * lastPressure * 0.6, 0, Math.PI*2);
   ctx.fill();
 }
 
 function calcVelocity(p1, p2){
-  const dx = p2.x - p1.x, dy = p2.y - p1.y;
-  const dt = Math.max(1, p2.t - p1.t);
-  return Math.sqrt(dx*dx + dy*dy) / dt;
+  const dx=p2.x-p1.x, dy=p2.y-p1.y;
+  const dt=Math.max(1, p2.t-p1.t);
+  return Math.sqrt(dx*dx+dy*dy)/dt;
 }
 
-function calcDynamicWidth(velocity){
-  // 速度越快寬度越細，使用平滑曲線轉換
-  // 速度範圍：0~5 px/ms
-  const normalized = Math.min(velocity / 2.5, 1);
-  const ratio = MAX_WIDTH_RATIO - (MAX_WIDTH_RATIO - MIN_WIDTH_RATIO) * normalized;
-  let newWidth = penSize * ratio;
-  // 與上一次寬度平滑過渡，避免突變
-  newWidth = lastWidth * VELOCITY_FILTER + newWidth * (1 - VELOCITY_FILTER);
+function calcDynamicWidth(velocity, pressure){
+  // 速度影響（快→細、慢→粗）
+  const velNorm = Math.min(velocity/2.5, 1);
+  const velRatio = MAX_WIDTH_RATIO - (MAX_WIDTH_RATIO - MIN_WIDTH_RATIO) * velNorm;
+  // 壓力影響（重→粗、輕→細）；無壓力設備 pressure=0.5 維持原始效果
+  const pressureRatio = 0.4 + pressure * 1.2;
+  // 合併：速度 60%、壓力 40% 權重
+  const combinedRatio = velRatio * 0.6 + pressureRatio * 0.4;
+  let newWidth = penSize * combinedRatio;
+  // 平滑過渡
+  newWidth = lastWidth * VELOCITY_FILTER + newWidth * (1-VELOCITY_FILTER);
   lastWidth = newWidth;
   return newWidth;
 }
 
 function midPoint(p1, p2){
-  return { x: (p1.x + p2.x) / 2, y: (p1.y + p2.y) / 2 };
+  return {x:(p1.x+p2.x)/2, y:(p1.y+p2.y)/2};
 }
 
 function doDraw(e){
   if(!isDrawing)return; e.preventDefault();
   const p=getXY(e,canvas);
-  // 距離太近的點過濾掉（避免抖動）
-  const last = points[points.length-1];
-  const dist = Math.hypot(p.x - last.x, p.y - last.y);
-  if (dist < 1) return;
+  const last=points[points.length-1];
+  const dist=Math.hypot(p.x-last.x, p.y-last.y);
+  if(dist<1)return;
+
+  // 取得壓力值（手寫板為真實壓力，手指/滑鼠為 0.5）
+  const pressure = getPressure(e);
+  lastPressure = pressure * 0.3 + lastPressure * 0.7; // 平滑壓力變化
 
   points.push(p);
+  if(points.length<3)return;
 
-  // 至少要有 3 個點才能繪製曲線
-  if (points.length < 3) return;
+  const len=points.length;
+  const p0=points[len-3], p1=points[len-2], p2=points[len-1];
+  const velocity=calcVelocity(p1,p2);
+  const width=calcDynamicWidth(velocity, lastPressure);
+  const startMid=midPoint(p0,p1);
+  const endMid=midPoint(p1,p2);
 
-  const len = points.length;
-  const p0 = points[len-3], p1 = points[len-2], p2 = points[len-1];
-
-  // 計算這段筆畫的速度與寬度
-  const velocity = calcVelocity(p1, p2);
-  const width = calcDynamicWidth(velocity);
-
-  // 用 quadratic bezier：從前一段中點，經過 p1（控制點），到這段中點
-  const startMid = midPoint(p0, p1);
-  const endMid   = midPoint(p1, p2);
-
-  ctx.strokeStyle = penColor;
-  ctx.lineWidth   = width;
-  ctx.lineCap     = 'round';
-  ctx.lineJoin    = 'round';
+  ctx.strokeStyle=penColor;
+  ctx.lineWidth=width;
+  ctx.lineCap='round';
+  ctx.lineJoin='round';
   ctx.beginPath();
   ctx.moveTo(startMid.x, startMid.y);
   ctx.quadraticCurveTo(p1.x, p1.y, endMid.x, endMid.y);
   ctx.stroke();
 
-  document.getElementById('apply-btn').disabled = false;
+  document.getElementById('apply-btn').disabled=false;
 }
 
 function endDraw(){
   if(!isDrawing)return; isDrawing=false;
-
-  // 收筆：補繪最後一小段，從最後中點接到實際終點
-  if(points.length >= 2){
-    const last = points[points.length-1];
-    const prev = points[points.length-2];
-    const startMid = midPoint(prev, last);
-    ctx.strokeStyle = penColor;
-    ctx.lineWidth = lastWidth || penSize;
-    ctx.lineCap = 'round';
+  if(points.length>=2){
+    const last=points[points.length-1];
+    const prev=points[points.length-2];
+    const startMid=midPoint(prev,last);
+    ctx.strokeStyle=penColor;
+    ctx.lineWidth=lastWidth||penSize;
+    ctx.lineCap='round';
     ctx.beginPath();
     ctx.moveTo(startMid.x, startMid.y);
     ctx.lineTo(last.x, last.y);
     ctx.stroke();
-
-    // 收筆圓點
-    ctx.fillStyle = penColor;
+    ctx.fillStyle=penColor;
     ctx.beginPath();
-    ctx.arc(last.x, last.y, (lastWidth || penSize)*0.45, 0, Math.PI*2);
+    ctx.arc(last.x, last.y, (lastWidth||penSize)*0.45, 0, Math.PI*2);
     ctx.fill();
-  } else if (points.length === 1){
-    // 單點輕觸
-    const p = points[0];
-    ctx.fillStyle = penColor;
+  } else if(points.length===1){
+    const p=points[0];
+    ctx.fillStyle=penColor;
     ctx.beginPath();
     ctx.arc(p.x, p.y, penSize*0.5, 0, Math.PI*2);
     ctx.fill();
   }
-
   points=[];
-  lastWidth = 0;
+  lastWidth=0;
+  lastPressure=0.5;
   strokeSnapshots.push(ctx.getImageData(0,0,canvasW,canvasH));
   updateUndoBtn();
-  document.getElementById('apply-btn').disabled = false;
+  document.getElementById('apply-btn').disabled=false;
 }
-canvas.addEventListener('mousedown',startDraw);
-canvas.addEventListener('mousemove',doDraw);
-canvas.addEventListener('mouseup',endDraw);
-canvas.addEventListener('mouseleave',endDraw);
-canvas.addEventListener('touchstart',startDraw,{passive:false});
-canvas.addEventListener('touchmove',doDraw,{passive:false});
-canvas.addEventListener('touchend',endDraw);
+
+/* ── 事件監聽器：優先使用 Pointer Events（支援手寫板壓力感應）── */
+if(window.PointerEvent){
+  // Pointer Events（手寫板 + 滑鼠 + 觸控，統一處理）
+  canvas.addEventListener('pointerdown', startDraw);
+  canvas.addEventListener('pointermove', doDraw);
+  canvas.addEventListener('pointerup',   endDraw);
+  canvas.addEventListener('pointerleave',endDraw);
+  canvas.addEventListener('pointercancel',endDraw);
+} else {
+  // 備援：舊版瀏覽器使用 Mouse + Touch Events
+  canvas.addEventListener('mousedown', startDraw);
+  canvas.addEventListener('mousemove', doDraw);
+  canvas.addEventListener('mouseup',   endDraw);
+  canvas.addEventListener('mouseleave',endDraw);
+  canvas.addEventListener('touchstart',startDraw,{passive:false});
+  canvas.addEventListener('touchmove', doDraw,   {passive:false});
+  canvas.addEventListener('touchend',  endDraw);
+}
 
 function undoStroke(){
   if(!strokeSnapshots.length)return;

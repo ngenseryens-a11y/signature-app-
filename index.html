@@ -372,12 +372,14 @@ function startDraw(e){
   e.preventDefault(); isDrawing=true;
   const p=getXY(e,canvas);
   lastPressure = getPressure(e);
+  lastWidth = penSize * (0.4 + lastPressure * 0.6);
   points=[p];
   lastX=p.x; lastY=p.y;
-  lastWidth = penSize * MIN_WIDTH_RATIO;
+
+  // 起筆：立即畫一個圓點，確保第一筆有墨水，不留空白
   ctx.fillStyle=penColor;
   ctx.beginPath();
-  ctx.arc(p.x, p.y, penSize * lastPressure * 0.6, 0, Math.PI*2);
+  ctx.arc(p.x, p.y, lastWidth * 0.55, 0, Math.PI*2);
   ctx.fill();
 }
 
@@ -388,15 +390,11 @@ function calcVelocity(p1, p2){
 }
 
 function calcDynamicWidth(velocity, pressure){
-  // 速度影響（快→細、慢→粗）
   const velNorm = Math.min(velocity/2.5, 1);
   const velRatio = MAX_WIDTH_RATIO - (MAX_WIDTH_RATIO - MIN_WIDTH_RATIO) * velNorm;
-  // 壓力影響（重→粗、輕→細）；無壓力設備 pressure=0.5 維持原始效果
   const pressureRatio = 0.4 + pressure * 1.2;
-  // 合併：速度 60%、壓力 40% 權重
   const combinedRatio = velRatio * 0.6 + pressureRatio * 0.4;
   let newWidth = penSize * combinedRatio;
-  // 平滑過渡
   newWidth = lastWidth * VELOCITY_FILTER + newWidth * (1-VELOCITY_FILTER);
   lastWidth = newWidth;
   return newWidth;
@@ -411,30 +409,44 @@ function doDraw(e){
   const p=getXY(e,canvas);
   const last=points[points.length-1];
   const dist=Math.hypot(p.x-last.x, p.y-last.y);
-  if(dist<1)return;
+  // 過濾距離改為 0.5，讓起筆更靈敏
+  if(dist<0.5)return;
 
-  // 取得壓力值（手寫板為真實壓力，手指/滑鼠為 0.5）
   const pressure = getPressure(e);
-  lastPressure = pressure * 0.3 + lastPressure * 0.7; // 平滑壓力變化
+  lastPressure = pressure * 0.3 + lastPressure * 0.7;
 
   points.push(p);
-  if(points.length<3)return;
 
-  const len=points.length;
-  const p0=points[len-3], p1=points[len-2], p2=points[len-1];
-  const velocity=calcVelocity(p1,p2);
-  const width=calcDynamicWidth(velocity, lastPressure);
-  const startMid=midPoint(p0,p1);
-  const endMid=midPoint(p1,p2);
-
-  ctx.strokeStyle=penColor;
-  ctx.lineWidth=width;
-  ctx.lineCap='round';
-  ctx.lineJoin='round';
-  ctx.beginPath();
-  ctx.moveTo(startMid.x, startMid.y);
-  ctx.quadraticCurveTo(p1.x, p1.y, endMid.x, endMid.y);
-  ctx.stroke();
+  if(points.length===2){
+    // 只有 2 個點時：直接畫直線，確保起筆第一段不斷開
+    const p0=points[0], p1=points[1];
+    const velocity=calcVelocity(p0,p1);
+    const width=calcDynamicWidth(velocity, lastPressure);
+    ctx.strokeStyle=penColor;
+    ctx.lineWidth=width;
+    ctx.lineCap='round';
+    ctx.lineJoin='round';
+    ctx.beginPath();
+    ctx.moveTo(p0.x, p0.y);
+    ctx.lineTo(p1.x, p1.y);
+    ctx.stroke();
+  } else if(points.length>=3){
+    // 3 個點以上：Quadratic Bézier 平滑曲線
+    const len=points.length;
+    const p0=points[len-3], p1=points[len-2], p2=points[len-1];
+    const velocity=calcVelocity(p1,p2);
+    const width=calcDynamicWidth(velocity, lastPressure);
+    const startMid=midPoint(p0,p1);
+    const endMid=midPoint(p1,p2);
+    ctx.strokeStyle=penColor;
+    ctx.lineWidth=width;
+    ctx.lineCap='round';
+    ctx.lineJoin='round';
+    ctx.beginPath();
+    ctx.moveTo(startMid.x, startMid.y);
+    ctx.quadraticCurveTo(p1.x, p1.y, endMid.x, endMid.y);
+    ctx.stroke();
+  }
 
   document.getElementById('apply-btn').disabled=false;
 }
@@ -442,6 +454,7 @@ function doDraw(e){
 function endDraw(){
   if(!isDrawing)return; isDrawing=false;
   if(points.length>=2){
+    // 收筆：從最後中點畫到終點，確保收筆不斷開
     const last=points[points.length-1];
     const prev=points[points.length-2];
     const startMid=midPoint(prev,last);
@@ -452,15 +465,17 @@ function endDraw(){
     ctx.moveTo(startMid.x, startMid.y);
     ctx.lineTo(last.x, last.y);
     ctx.stroke();
+    // 收筆圓點
     ctx.fillStyle=penColor;
     ctx.beginPath();
     ctx.arc(last.x, last.y, (lastWidth||penSize)*0.45, 0, Math.PI*2);
     ctx.fill();
   } else if(points.length===1){
+    // 單點輕觸
     const p=points[0];
     ctx.fillStyle=penColor;
     ctx.beginPath();
-    ctx.arc(p.x, p.y, penSize*0.5, 0, Math.PI*2);
+    ctx.arc(p.x, p.y, (lastWidth||penSize)*0.55, 0, Math.PI*2);
     ctx.fill();
   }
   points=[];

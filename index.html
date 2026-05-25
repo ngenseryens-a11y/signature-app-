@@ -119,7 +119,7 @@ main{width:100%;max-width:480px;padding:16px 16px 40px;display:flex;flex-directi
 
 /* 簽名貼圖 */
 .sig-sticker{position:absolute;cursor:move;user-select:none;touch-action:none;}
-.sig-sticker img{width:100%;height:100%;object-fit:contain;display:block;pointer-events:none;}
+.sig-sticker img{width:100%;height:100%;object-fit:fill;display:block;pointer-events:none;}
 .sticker-border{position:absolute;inset:-3px;border:2px dashed var(--accent);border-radius:2px;pointer-events:none;}
 .sticker-border.date-type{border-color:var(--gold);}
 .del-btn{position:absolute;top:-13px;right:-13px;width:24px;height:24px;border-radius:50%;background:var(--accent);color:white;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:bold;cursor:pointer;z-index:10;box-shadow:0 2px 6px rgba(0,0,0,.35);}
@@ -873,10 +873,18 @@ function makeSignatureWithWatermark(sigURL, callback){
 function initStickersForPage(pageKey){
   const wrap=document.getElementById('doc-place-wrap');
   wrap.querySelectorAll('.sig-sticker').forEach(el=>el.remove());
-  // 合成「簽名 + 浮水印」後再加入
   makeSignatureWithWatermark(sigDataURL, function(combinedURL){
-    // 預設尺寸稍微加高（因為下方多了浮水印區）
-    addSticker(combinedURL, 20, 20, 140, 95, false, wrap);
+    // 根據合成圖的真實尺寸計算初始高度，確保不變形
+    const tmpImg = new Image();
+    tmpImg.onload = function(){
+      const realW = tmpImg.naturalWidth;
+      const realH = tmpImg.naturalHeight;
+      // 以寬度 150px 為基準，等比例計算正確高度
+      const displayW = 150;
+      const displayH = Math.round(displayW * realH / realW);
+      addSticker(combinedURL, 20, 20, displayW, displayH, false, wrap);
+    };
+    tmpImg.src = combinedURL;
   });
 }
 

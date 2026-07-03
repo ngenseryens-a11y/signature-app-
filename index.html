@@ -6,9 +6,9 @@
 <title>EZSign｜電子簽名</title>
 <!-- LINE / 社群平台預覽卡片設定 -->
 <meta property="og:title"       content="EZSign 電子簽名">
-<meta property="og:description" content="手機直接簽名，支援 PDF、圖片，簽名後自動附上日期，高解析度輸出。">
+<meta property="og:description" content="手機直接簽名，支援 PDF、圖片，簽名後自動加上日期浮水印，高解析度輸出。">
 <meta property="og:type"        content="website">
-<meta name="description"        content="手機直接簽名，支援 PDF、圖片，簽名後自動附上日期，高解析度輸出。">
+<meta name="description"        content="手機直接簽名，支援 PDF、圖片，簽名後自動加上日期浮水印，高解析度輸出。">
 <meta name="application-name"   content="EZSign">
 <meta name="author"             content="EZSign">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
@@ -119,7 +119,7 @@ main{width:100%;max-width:480px;padding:16px 16px 40px;display:flex;flex-directi
 
 /* 簽名貼圖 */
 .sig-sticker{position:absolute;cursor:move;user-select:none;touch-action:none;}
-.sig-sticker img{width:100%;height:100%;object-fit:fill;display:block;pointer-events:none;}
+.sig-sticker img{width:100%;height:100%;object-fit:contain;display:block;pointer-events:none;}
 .sticker-border{position:absolute;inset:-3px;border:2px dashed var(--accent);border-radius:2px;pointer-events:none;}
 .sticker-border.date-type{border-color:var(--gold);}
 .del-btn{position:absolute;top:-13px;right:-13px;width:24px;height:24px;border-radius:50%;background:var(--accent);color:white;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:bold;cursor:pointer;z-index:10;box-shadow:0 2px 6px rgba(0,0,0,.35);}
@@ -372,14 +372,12 @@ function startDraw(e){
   e.preventDefault(); isDrawing=true;
   const p=getXY(e,canvas);
   lastPressure = getPressure(e);
-  lastWidth = penSize * (0.4 + lastPressure * 0.6);
   points=[p];
   lastX=p.x; lastY=p.y;
-
-  // 起筆：立即畫一個圓點，確保第一筆有墨水，不留空白
+  lastWidth = penSize * MIN_WIDTH_RATIO;
   ctx.fillStyle=penColor;
   ctx.beginPath();
-  ctx.arc(p.x, p.y, lastWidth * 0.55, 0, Math.PI*2);
+  ctx.arc(p.x, p.y, penSize * lastPressure * 0.6, 0, Math.PI*2);
   ctx.fill();
 }
 
@@ -390,11 +388,15 @@ function calcVelocity(p1, p2){
 }
 
 function calcDynamicWidth(velocity, pressure){
+  // 速度影響（快→細、慢→粗）
   const velNorm = Math.min(velocity/2.5, 1);
   const velRatio = MAX_WIDTH_RATIO - (MAX_WIDTH_RATIO - MIN_WIDTH_RATIO) * velNorm;
+  // 壓力影響（重→粗、輕→細）；無壓力設備 pressure=0.5 維持原始效果
   const pressureRatio = 0.4 + pressure * 1.2;
+  // 合併：速度 60%、壓力 40% 權重
   const combinedRatio = velRatio * 0.6 + pressureRatio * 0.4;
   let newWidth = penSize * combinedRatio;
+  // 平滑過渡
   newWidth = lastWidth * VELOCITY_FILTER + newWidth * (1-VELOCITY_FILTER);
   lastWidth = newWidth;
   return newWidth;
@@ -409,44 +411,30 @@ function doDraw(e){
   const p=getXY(e,canvas);
   const last=points[points.length-1];
   const dist=Math.hypot(p.x-last.x, p.y-last.y);
-  // 過濾距離改為 0.5，讓起筆更靈敏
-  if(dist<0.5)return;
+  if(dist<1)return;
 
+  // 取得壓力值（手寫板為真實壓力，手指/滑鼠為 0.5）
   const pressure = getPressure(e);
-  lastPressure = pressure * 0.3 + lastPressure * 0.7;
+  lastPressure = pressure * 0.3 + lastPressure * 0.7; // 平滑壓力變化
 
   points.push(p);
+  if(points.length<3)return;
 
-  if(points.length===2){
-    // 只有 2 個點時：直接畫直線，確保起筆第一段不斷開
-    const p0=points[0], p1=points[1];
-    const velocity=calcVelocity(p0,p1);
-    const width=calcDynamicWidth(velocity, lastPressure);
-    ctx.strokeStyle=penColor;
-    ctx.lineWidth=width;
-    ctx.lineCap='round';
-    ctx.lineJoin='round';
-    ctx.beginPath();
-    ctx.moveTo(p0.x, p0.y);
-    ctx.lineTo(p1.x, p1.y);
-    ctx.stroke();
-  } else if(points.length>=3){
-    // 3 個點以上：Quadratic Bézier 平滑曲線
-    const len=points.length;
-    const p0=points[len-3], p1=points[len-2], p2=points[len-1];
-    const velocity=calcVelocity(p1,p2);
-    const width=calcDynamicWidth(velocity, lastPressure);
-    const startMid=midPoint(p0,p1);
-    const endMid=midPoint(p1,p2);
-    ctx.strokeStyle=penColor;
-    ctx.lineWidth=width;
-    ctx.lineCap='round';
-    ctx.lineJoin='round';
-    ctx.beginPath();
-    ctx.moveTo(startMid.x, startMid.y);
-    ctx.quadraticCurveTo(p1.x, p1.y, endMid.x, endMid.y);
-    ctx.stroke();
-  }
+  const len=points.length;
+  const p0=points[len-3], p1=points[len-2], p2=points[len-1];
+  const velocity=calcVelocity(p1,p2);
+  const width=calcDynamicWidth(velocity, lastPressure);
+  const startMid=midPoint(p0,p1);
+  const endMid=midPoint(p1,p2);
+
+  ctx.strokeStyle=penColor;
+  ctx.lineWidth=width;
+  ctx.lineCap='round';
+  ctx.lineJoin='round';
+  ctx.beginPath();
+  ctx.moveTo(startMid.x, startMid.y);
+  ctx.quadraticCurveTo(p1.x, p1.y, endMid.x, endMid.y);
+  ctx.stroke();
 
   document.getElementById('apply-btn').disabled=false;
 }
@@ -454,7 +442,6 @@ function doDraw(e){
 function endDraw(){
   if(!isDrawing)return; isDrawing=false;
   if(points.length>=2){
-    // 收筆：從最後中點畫到終點，確保收筆不斷開
     const last=points[points.length-1];
     const prev=points[points.length-2];
     const startMid=midPoint(prev,last);
@@ -465,17 +452,15 @@ function endDraw(){
     ctx.moveTo(startMid.x, startMid.y);
     ctx.lineTo(last.x, last.y);
     ctx.stroke();
-    // 收筆圓點
     ctx.fillStyle=penColor;
     ctx.beginPath();
     ctx.arc(last.x, last.y, (lastWidth||penSize)*0.45, 0, Math.PI*2);
     ctx.fill();
   } else if(points.length===1){
-    // 單點輕觸
     const p=points[0];
     ctx.fillStyle=penColor;
     ctx.beginPath();
-    ctx.arc(p.x, p.y, (lastWidth||penSize)*0.55, 0, Math.PI*2);
+    ctx.arc(p.x, p.y, penSize*0.5, 0, Math.PI*2);
     ctx.fill();
   }
   points=[];
@@ -860,17 +845,18 @@ function makeSignatureWithWatermark(sigURL, callback){
     const dateStr = `${y}/${m}/${d}`;
 
     // 先畫底層浮水印
-    const dateSize  = Math.max(14, sigW * 0.10);
+    const titleSize = Math.max(14, sigW * 0.10);
+    const dateSize  = Math.max(11, sigW * 0.08);
 
     cx.save();
     cx.textAlign = 'right';
     cx.textBaseline = 'bottom';
-    // 半透明背景
-    cx.globalAlpha = 0.55;
-    cx.fillStyle = 'rgba(255,255,255,0.6)';
-    cx.fillRect(0, sigH, sigW, wmHeight);
-    // 只顯示日期
+    // 上方：EZSign
     cx.globalAlpha = 0.85;
+    cx.fillStyle = '#8b1a1a';
+    cx.font = `bold ${titleSize}px sans-serif`;
+    cx.fillText('EZSign', sigW - 8, sigH + wmHeight * 0.55);
+    // 下方：日期
     cx.fillStyle = '#333333';
     cx.font = `${dateSize}px sans-serif`;
     cx.fillText(dateStr, sigW - 8, sigH + wmHeight - 4);
@@ -888,18 +874,10 @@ function makeSignatureWithWatermark(sigURL, callback){
 function initStickersForPage(pageKey){
   const wrap=document.getElementById('doc-place-wrap');
   wrap.querySelectorAll('.sig-sticker').forEach(el=>el.remove());
+  // 合成「簽名 + 浮水印」後再加入
   makeSignatureWithWatermark(sigDataURL, function(combinedURL){
-    // 根據合成圖的真實尺寸計算初始高度，確保不變形
-    const tmpImg = new Image();
-    tmpImg.onload = function(){
-      const realW = tmpImg.naturalWidth;
-      const realH = tmpImg.naturalHeight;
-      // 以寬度 150px 為基準，等比例計算正確高度
-      const displayW = 150;
-      const displayH = Math.round(displayW * realH / realW);
-      addSticker(combinedURL, 20, 20, displayW, displayH, false, wrap);
-    };
-    tmpImg.src = combinedURL;
+    // 預設尺寸稍微加高（因為下方多了浮水印區）
+    addSticker(combinedURL, 20, 20, 140, 95, false, wrap);
   });
 }
 

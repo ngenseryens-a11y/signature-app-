@@ -6,9 +6,9 @@
 <title>EZSign｜電子簽名</title>
 <!-- LINE / 社群平台預覽卡片設定 -->
 <meta property="og:title"       content="EZSign 電子簽名">
-<meta property="og:description" content="手機直接簽名，支援 PDF、圖片，簽名後自動加上日期浮水印，高解析度輸出。">
+<meta property="og:description" content="手機直接簽名，支援 PDF、圖片，簽名後自動附上日期，高解析度輸出。">
 <meta property="og:type"        content="website">
-<meta name="description"        content="手機直接簽名，支援 PDF、圖片，簽名後自動加上日期浮水印，高解析度輸出。">
+<meta name="description"        content="手機直接簽名，支援 PDF、圖片，簽名後自動附上日期，高解析度輸出。">
 <meta name="application-name"   content="EZSign">
 <meta name="author"             content="EZSign">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
@@ -424,7 +424,8 @@ function doDraw(e){
   const p0=points[len-3], p1=points[len-2], p2=points[len-1];
   const velocity=calcVelocity(p1,p2);
   const width=calcDynamicWidth(velocity, lastPressure);
-  const startMid=midPoint(p0,p1);
+  // 第一段線從落筆點 p0 本身畫起，銜接 startDraw 的落筆圓點，避免中間出現斷層的獨立黑點
+  const startMid = (len===3) ? p0 : midPoint(p0,p1);
   const endMid=midPoint(p1,p2);
 
   ctx.strokeStyle=penColor;
@@ -845,18 +846,13 @@ function makeSignatureWithWatermark(sigURL, callback){
     const dateStr = `${y}/${m}/${d}`;
 
     // 先畫底層浮水印
-    const titleSize = Math.max(14, sigW * 0.10);
-    const dateSize  = Math.max(11, sigW * 0.08);
+    const dateSize  = Math.max(14, sigW * 0.10);
 
     cx.save();
     cx.textAlign = 'right';
     cx.textBaseline = 'bottom';
-    // 上方：EZSign
-    cx.globalAlpha = 0.85;
-    cx.fillStyle = '#8b1a1a';
-    cx.font = `bold ${titleSize}px sans-serif`;
-    cx.fillText('EZSign', sigW - 8, sigH + wmHeight * 0.55);
-    // 下方：日期
+    // 只顯示日期；文字採完全不透明，避免部分手機瀏覽器對半透明文字的合成算圖異常，
+    // 導致文字周圍出現非預期的灰白底色方塊
     cx.fillStyle = '#333333';
     cx.font = `${dateSize}px sans-serif`;
     cx.fillText(dateStr, sigW - 8, sigH + wmHeight - 4);
